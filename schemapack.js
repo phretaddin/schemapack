@@ -273,8 +273,6 @@ function getFlattened(schema) {
   var allTypes = Object.keys(byteCountDict);
 
   function flatten(json, acc, inArray) {
-    acc = acc || [];
-
     var keys = Object.keys(json);
     keys.sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
 
@@ -301,7 +299,7 @@ function getFlattened(schema) {
     }
   }
   var flattened = [];
-  flatten(schema);
+  flatten(schema, [], schema.constructor === Array);
   return flattened;
 }
 
