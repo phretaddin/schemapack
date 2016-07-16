@@ -1,6 +1,6 @@
 # schemapack
 
-Efficiently encode your JavaScript objects in to compact byte buffers and then decode them back in to the original JSON on the receiver. Integrates very well with WebSockets.
+Efficiently encode your JavaScript objects in to compact byte buffers and then decode them back in to the JavaScript objects on the receiver. Integrates very well with WebSockets.
 
 ## Object Example
 
@@ -73,10 +73,10 @@ I was working on a web app that used WebSockets to communicate between client an
 ## Benefits
 
 * *Easy:* Don't have to learn a schema language. It's just JSON that matches your object format. To make a schema, just copy and paste the object you were going to send and replace its values with the types they represent. Done.
-* *Speed:* The fastest JSON encoder/decoder available. Even beats native `JSON.stringify` and `JSON.parse`.
+* *Speed:* The fastest JavaScript object encoder/decoder available. Even beats native `JSON.stringify` and `JSON.parse`.
 * *Small:* Just 300 lines of code and a single dependency (with no dependencies on the server).
 * *Simple:* Just import the library, build a JSON schema, and call encode/decode. 
-* No overhead: When an object is encoded, the resulting buffer consists solely of compact data. Keys, delimiters, etc. are all stripped out and only recreated on the receiving end.
+* *No overhead:* When an object is encoded, the resulting buffer consists solely of compact data. Keys, delimiters, etc. are all stripped out and only recreated on the receiving end.
 * *Validation:* If the schema is invalid, an error will be thrown. Likewise, if the object to encode/decode does not match the size of the schema, the program will crash. Useful for ensuring all messages match their format.
 * *Bandwidth Efficiency:* The amount of bytes sent over the wire is often 10x or more less than the JSON alternative, due to removing keys and delimiters along with using compact data types.
 
@@ -85,7 +85,7 @@ I was working on a web app that used WebSockets to communicate between client an
 Just copy schemapack.js in to your project directory and use it like this:
 
     var schemapack = require('./schemapack');
-    var builtSchema = schemapack.build(yourJSONSchemaObject);
+    var builtSchema = schemapack.build(yourJSONSchema);
     // var buffer = builtSchema.encode(object);
     // var object = builtSchema.decode(buffer);
 
@@ -101,11 +101,11 @@ Everything is included in that file. In the `node.js` environment, there are no 
 
 **Returns**: An object with `encode` and `decode` functions that operate based on `schema`.
 
-### encode(json)
+### encode(obj)
 
 **Description:** This function is called from the object returned from `schemapack.build`. It uses the schema specified in the `build` function to pack all the data in to a compact buffer (usually for then sending over the internet).
 
-**Arguments:** *`json`* - The Javascript object you want to encode in to a packed binary buffer.
+**Arguments:** *`obj`* - The Javascript object you want to encode in to a packed binary buffer.
 
 **Returns**: `Buffer` consisting soley of the bytes required to reproduce the object with decode.
 
