@@ -94,46 +94,46 @@ Everything is included in that file. In the `node.js` environment, there are no 
 
 ### ```schemapack.build(schema)```
 
-##### Description: 
+#### Description: 
 This function takes a JavaScript object that matches the structure and format of the objects you will encode. To create a `schema`, copy and paste the JSON of your object you will encode and replace its key values with the data types they represent. This function then takes the schema, parses it, sorts it (for deterministic iteration), validates it, flattens it (for efficient iteration), and then saves it for use in the coming encode/decode functions.
 
-##### Arguments:
+#### Arguments:
 * `schema` - A JavaScript object matching the structure of the object you will encode.
 
-##### Returns: 
+#### Returns: 
 An object with `encode` and `decode` functions that operate based on `schema`.
 
 ### `encode(obj)`
 
-##### Description:
+#### Description:
 This function is called from the object returned from `schemapack.build`. It uses the schema specified in the `build` function to pack all the data in to a compact buffer (usually for then sending over the internet).
 
-##### Arguments:
+#### Arguments:
 * *`obj`* - The Javascript object you want to encode in to a packed binary buffer.
 
-##### Returns:
+#### Returns:
 `Buffer` consisting soley of the bytes required to reproduce the object with decode.
 
 ### `decode(buffer)`
 
-##### Description:
+#### Description:
 This function is called from the object returned from `schemapack.build`. It uses the schema specified in the `build` function to decode the passed in buffer back in to a JavaScript object.
 
-##### Arguments:
+#### Arguments:
 * *`buffer`* - The buffer that was returned from the corresponding `encode` call.
 
-##### Returns:
+#### Returns:
 `JavaScript object` recreated from given schema and buffer.
 
 ### `schemapack.changeStringEncoding(stringEncoding)`
 
-##### Description:
+#### Description:
 The string encoding to use for all strings encoded/decoded from schemapack. UTF8 is the default and is the most standardized string encoding to use, while also being the most byte-efficient. However, if you are only using English characters and symbols, changing the string encoding to `ascii` will make encoding/decoding much faster.
 
-##### Arguments:
+#### Arguments:
 * *`stringEncoding`*: The string encoding to now use. Choose between `'ascii'`, `'utf8'`, `'utf16le'`, `'ucs2'`, `'base64'`, `'binary'`, and `'hex'`.
 
-##### Example:
+#### Example:
 
 ```js
 schemapack.changeStringEncoding('ascii');
@@ -141,11 +141,14 @@ schemapack.changeStringEncoding('ascii');
 
 ### `schemapack.addTypeAlias(newTypeName, underlyingType)`
 
-##### Arguments: 
+#### Description:
+If you do not like the names of the existing types (for example, `int8`, `int16`) and perhaps prefer using `byte` or `short`, then you can add those here. This does not slow down the execution speed at all.
+
+#### Arguments: 
  * *`newTypeName`*: The name of type that will be used as an alias for the underlying type.
  * *`underlyingType`*: One of the above types in the 'available data types' table.
 
-##### Example: 
+#### Example: 
 
 ```js
 schemapack.addTypeAlias('int', 'int32');
