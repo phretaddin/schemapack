@@ -1,0 +1,30 @@
+{
+  "name": "schemapack",
+  "version": "1.0.0",
+  "description": "Efficiently encode your JavaScript objects in to compact byte buffers and then decode them back in to the original JSON on the receiver. Integrates very well with WebSockets.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phretaddin/schemapack.git"
+  },
+  "keywords": [
+    "schema",
+    "pack",
+    "binary",
+    "encode",
+    "javascript",
+    "websockets",
+    "serialize",
+    "serialization",
+    "schemapack"
+  ],
+  "author": "phretaddin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/phretaddin/schemapack/issues"
+  },
+  "homepage": "https://github.com/phretaddin/schemapack#readme"
+}

@@ -1,56 +1,48 @@
 # schemapack
 
-Create a schema object to encode/decode your JSON in to a compact byte buffer with no overhead. Integrates very well with WebSockets.
+Efficiently encode your JavaScript objects in to compact byte buffers and then decode them back in to the original JSON on the receiver. Integrates very well with WebSockets.
 
 ## Object Example
 
-    // This object goes on both the client and server
-    var playerSchema = {
+    // On both the client and server:
+    var playerSchema = schemapack.build({
       health: "uint16",
       level: "uint8",
       jumping: "boolean",
       position: [ "varuint" ],
       name: "string",
-      stats: {
-        str: 'uint8',
-        agi: 'uint8',
-        int: 'uint8'
-      }
-    };
+      stats: { str: 'uint8', agi: 'uint8', int: 'uint8' }
+    });
 
-    // Object on the client that matches the schema
+    // On the client:
     var player = {
       health: 4000,
       level: 50,
       jumping: false,
       position: [ 20, 400, 300 ],
-      name: "Warrior",
-      stats: {
-        str: 87,
-        agi: 42,
-        int: 22
-      }
+      name: "John",
+      stats: { str: 87, agi: 42, int: 22 }
     };
-
-    var buffer = schemapack.encode(playerSchema, player);
+    var buffer = playerSchema.encode(player);
+    // Create a socket connection to a remote server
     socket.binaryType = 'arraybuffer';
     socket.emit('player-message', buffer);
 
-    // On the server
+    // On the server:
     socket.on('player-message', function(buffer) { 
-      var player = schemapack.decode(playerSchema, buffer);
+      var player = playerSchema.decode(buffer);
     }
 
-    In this example, the size of buffer in bytes is only 15 bytes. The stringified JSON version would have been 120 bytes.
+In this example, the size of payload is only **18 bytes**. If you had used `JSON.stringify` instead, the payload would have been **117 bytes** (10x larger than necessary).
     
 ## Array Example
-
-    var personSchema = [ "string", "int8", "float32" ]; // Name, age, height
+    var personSchema = schemapack.build([ "string", "int8", "float32" ]); // Name, age, height
+    
     var person = [ "Dave", 37, 1.88 ];
-    var buffer = schemapack.encode(personSchema, person);
-    var object = schemapack.decode(personSchema, buffer);
+    var buffer = builtPersonSchema.encode(person);
+    var object = builtPersonSchema.decode(buffer);
 
-    The last item in schema arrays can be repeated. That is, a schema of [ "string", "bool", "int" ] accepts [ "a", false, 5 ], [ "a", false, 5, 6 ], etc.
+By the way, the last item in nested schema arrays can be repeated. That is, a schema of `[ "string", ["int"] ]` accepts `[ "a", [5] ]`, `[ "a", [5, 10] ]`, etc.
 
 ## Motivation
 
@@ -63,49 +55,88 @@ I was working on a web app that used WebSockets to communicate between client an
     // Server
     socket.on('chatmessage', function(message) {
       // We know message is going to be an object with 'sender' and 'contents' keys
+      // Waste of bandwidth and CPU to continuously send this extraneous data back and forth.
     });
 
-It seemed silly to 
+##### The problems I had with sending JSON back and forth between client and server:
+* It's a complete waste of bandwidth to send all those keys and delimiters when the object format is known.
+* Even though `JSON.stringify` and `JSON.parse` are optimized native functions, they're slower than buffers.
+* There's no implicit central message repository where I can look at the format of all my different packets.
+* There's no validation so there's potential to have silent errors when accidentally sending the wrong message.
 
-When JSON is sent over the wire, it is just sent as a string. So a 5 digit number, 12345, would be sent as 5 bytes. With JSON, you also have to send the key names as part of the payload. While this may not be always be a problem, if you were making something multiplayer where each player sent 60 updates per second to the server, the bandwidth costs of repeatedly sending this superfluous data quickly adds up. Add in the benefits of having a central repository of message formats along with the validation and error-checking that a schema provides, and the motivation becomes clear.
+##### Why I didn't just use an existing schema packing library:
+* *Too complicated:* I didn't want to have to learn a schema language and reformat all of my objects to match it.
+* *Too slow:* I benchmarked a couple of other popular libraries and they were often 10x slower than using the native `JSON.stringify` and `JSON.parse`. This library is faster than even those native methods.
+* *Too large:* I didn't want to use a behemoth library with tens of thousands of lines of code and tons of dependencies for something so simple. This library is less than 400 lines of code.
+* *Too much overhead:* Some of the other libraries that allow you to specify a schema still waste a lot of bytes on padding/keys/etc. I desgined this library to not waste a single byte on anything that isn't your data.
 
 ## Benefits
 
-* Easy: Don't have to learn a schema language. It's just JSON that matches your object format. To make a schema, just copy and paste the object you were going to send and replace its values with the types they represent. Done.
-* Speed: Many times faster than other binary packing libraries on both encoding and decoding.
-* Small: Just 300 lines of code with no dependencies.
-* Simple: Just import the library, create a JSON schema, and call encode/decode with it and your object. 
-* No overhead: When an object is encoded, the resulting buffer consists solely of compact data. Keys, delimiters, etc. are all stripped out and recreated on the receiving end.
-* Validation: If the object provided to encode doesn't match the size of the schema, the program will crash on encode. Useful for making sure all your messages match the required format.
-* Bandwidth Efficiency: The amount of bytes sent over the wire is often 10x or more less than the JSON alternative, due to removing keys and delimiters along with using compact data types.
+* *Easy:* Don't have to learn a schema language. It's just JSON that matches your object format. To make a schema, just copy and paste the object you were going to send and replace its values with the types they represent. Done.
+* *Speed:* The fastest JSON encoder/decoder available. Even beats native `JSON.stringify` and `JSON.parse`.
+* *Small:* Just 300 lines of code and a single dependency (with no dependencies on the server).
+* *Simple:* Just import the library, build a JSON schema, and call encode/decode. 
+* No overhead: When an object is encoded, the resulting buffer consists solely of compact data. Keys, delimiters, etc. are all stripped out and only recreated on the receiving end.
+* *Validation:* If the schema is invalid, an error will be thrown. Likewise, if the object to encode/decode does not match the size of the schema, the program will crash. Useful for ensuring all messages match their format.
+* *Bandwidth Efficiency:* The amount of bytes sent over the wire is often 10x or more less than the JSON alternative, due to removing keys and delimiters along with using compact data types.
 
 ## Installation
 
 Just copy schemapack.js in to your project directory and use it like this:
 
     var schemapack = require('./schemapack');
-    // var buffer = schemapack.encode(schema, object);
-    // var object = schemapack.decode(schema, buffer);
+    var builtSchema = schemapack.build(yourJSONSchemaObject);
+    // var buffer = builtSchema.encode(object);
+    // var object = builtSchema.decode(buffer);
 
-Everything is included in that file and it has no dependencies.
+Everything is included in that file. In the `node.js` environment, there are no dependencies. In the browser, the [Buffer shim](https://github.com/feross/buffer) is required.
 
 ## API Reference
 
-### encode(schema, obj)
+### schemapack.build(schema)
 
-* `schema` - Object with the same format as obj, with values replaced with the data types they represent.
-* `obj` - The variable you want to encode in to a packed binary buffer.
+**Description:** This function takes a JavaScript object that matches the structure and format of the objects you will encode. To create a `schema`, copy and paste the JSON of your object you will encode and replace its key values with the data types they represent. This function then takes the schema, parses it, sorts it (for deterministic iteration), validates it, flattens it (for efficient iteration), and then saves it for use in the coming encode/decode functions.
 
-**Returns**: `Uint8Array` buffer consisting soley of the bytes required to reproduce the object with decode.
+**Arguments:** `schema` - A JavaScript object matching the structure of the object you will encode.
 
-### decode(schema, buffer)
+**Returns**: An object with `encode` and `decode` functions that operate based on `schema`.
 
-**Arguments**
+### encode(json)
 
-* `schema` - The same schema object used to encode the passed in buffer.
-* `buffer` - The `Uint8Array` binary buffer that was returned from the corresponding `encode` call.
+**Description:** This function is called from the object returned from `schemapack.build`. It uses the schema specified in the `build` function to pack all the data in to a compact buffer (usually for then sending over the internet).
+
+**Arguments:** *`json`* - The Javascript object you want to encode in to a packed binary buffer.
+
+**Returns**: `Buffer` consisting soley of the bytes required to reproduce the object with decode.
+
+### decode(buffer)
+
+**Description:** This function is called from the object returned from `schemapack.build`. It uses the schema specified in the `build` function to decode the passed in buffer back in to a JavaScript object.
+
+**Arguments:** *`buffer`* - The buffer that was returned from the corresponding `encode` call.
 
 **Returns**: `JavaScript object` recreated from given schema and buffer.
+
+### schemapack.changeStringEncoding(stringEncoding)
+
+**Description:** The string encoding to use for all strings encoded/decoded from schemapack. UTF8 is the default and is the most standardized string encoding to use, while also being the most byte-efficient. However, if you are only using English characters and symbols, changing the string encoding to `ascii` will make encoding/decoding much faster.
+
+**Arguments:** *`stringEncoding`*: The string encoding to now use. Choose between `[ 'ascii', 'utf8', 'utf16le', 'ucs2', 'base64', 'binary', 'hex' ]`.
+
+**Example**: 
+
+    schemapack.changeStringEncoding('ascii');
+
+### schemapack.addTypeAlias(newTypeName, underlyingType)
+
+**Arguments:** 
+ * *`newTypeName`*: The name of type that will be used as an alias for the underlying type.
+ * *`underlyingType`*: One of the above types in the 'available data types' table.
+
+**Example**: 
+
+    schemapack.addTypeAlias('int', 'int32');
+    var builtSchema = schemapack.build([ 'bool', 'int' ]);
 
 ## Here is a table of the available data types for use in your schemas:
 
@@ -124,16 +155,7 @@ Everything is included in that file and it has no dependencies.
 | varuint   |         | 1 byte when 0 to 127<br /> 2 bytes when 128 to 16,383<br /> 3 bytes when 16,385 to 2,097,151<br /> 4 bytes when 2,097,152 to 268,435,455<br /> etc.           | 0 to 9,007,199,254,740,991      |
 | varint    |         | 1 byte when -64 to 63<br /> 2 bytes when -8,192 to 8,191<br /> 3 bytes when -1,048,576 to 1,048,575<br /> 4 bytes when -134,217,728 to 134,217,727<br /> etc. | -1073741824 - 1073741823        |
 
-### addTypeAlias(newTypeName, underlyingType)
-
-*newTypeName*: The name of type that will be used as an alias for the underlying type.
-
-*underlyingType*: One of the above types in the 'available data types' table.
-
-**Example**: 
-
-    schemapack.addTypeAlias('int', 'int32');
-    schemapack.encode([ 'bool', 'int' ], [ true, 55 ]);
+Feel free to add your own aliases with `schemapack.addTypeAlias`.
 
 ## Tests
 
@@ -143,18 +165,9 @@ You may need to `npm install` packages like `msgpack` and `protobuf` if you want
     tests.runBenchmark();
     tests.runTestSuite();
 
-## Contributors
-
-Let people know how they can dive into the project, include important links to things like issue trackers, irc, twitter accounts if applicable.
-
-## Issues
-
-Warning: Although object key order is preserved in all current browser implementations (except for keys like "7" that parse as integers), it is not guaranteed.
-For this reason it is recommended to send arrays instead of keyed objects until a potential solution can be integrated in to the project.
-
 ## Compatibility
 
-This library uses DataView. [The availability for this interface is listed here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView#Browser_compatibility)
+This library uses `Buffer` when in the `node.js` environment and the [buffer shim](https://github.com/feross/buffer#features) when in the browser.
 
 ## License
 
