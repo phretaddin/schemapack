@@ -169,7 +169,7 @@ var builtSchema = schemapack.build([ 'bool', 'int' ]);
 | float32   |         | 4                                                                                                                                                             | 3.4E +/- 38 (7 digits)          |
 | float64   |         | 8                                                                                                                                                             | 1.7 +/- 308 (15 digits)         |
 | string    |         | varuint length prefix followed by bytes of each character                                                                                               | Any string                      |
-| varuint   |         | 1 byte when 0 to 127<br /> 2 bytes when 128 to 16,383<br /> 3 bytes when 16,385 to 2,097,151<br /> 4 bytes when 2,097,152 to 268,435,455<br /> etc.           | 0 to 9,007,199,254,740,991      |
+| varuint   |         | 1 byte when 0 to 127<br /> 2 bytes when 128 to 16,383<br /> 3 bytes when 16,384 to 2,097,151<br /> 4 bytes when 2,097,152 to 268,435,455<br /> etc.           | 0 to 9,007,199,254,740,991      |
 | varint    |         | 1 byte when -64 to 63<br /> 2 bytes when -8,192 to 8,191<br /> 3 bytes when -1,048,576 to 1,048,575<br /> 4 bytes when -134,217,728 to 134,217,727<br /> etc. | -1,073,741,824 - 1,073,741,823        |
 
 Feel free to add your own aliases with `schemapack.addTypeAlias(newTypeName, underlyingType)`.
