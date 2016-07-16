@@ -4,43 +4,47 @@ Efficiently encode your JavaScript objects in to compact byte buffers and then d
 
 ## Object Example
 
-    // On both the client and server:
-    var playerSchema = schemapack.build({
-      health: "uint16",
-      level: "uint8",
-      jumping: "boolean",
-      position: [ "varuint" ],
-      name: "string",
-      stats: { str: 'uint8', agi: 'uint8', int: 'uint8' }
-    });
+```js
+// On both the client and server:
+var playerSchema = schemapack.build({
+    health: "uint16",
+    level: "uint8",
+    jumping: "boolean",
+    position: [ "varuint" ],
+    name: "string",
+    stats: { str: 'uint8', agi: 'uint8', int: 'uint8' }
+});
 
-    // On the client:
-    var player = {
-      health: 4000,
-      level: 50,
-      jumping: false,
-      position: [ 20, 400, 300 ],
-      name: "John",
-      stats: { str: 87, agi: 42, int: 22 }
-    };
-    var buffer = playerSchema.encode(player);
-    // Create a socket connection to a remote server
-    socket.binaryType = 'arraybuffer';
-    socket.emit('player-message', buffer);
+// On the client:
+var player = {
+    health: 4000,
+    level: 50,
+    jumping: false,
+    position: [ 20, 400, 300 ],
+    name: "John",
+    stats: { str: 87, agi: 42, int: 22 }
+};
+var buffer = playerSchema.encode(player);
+// Create a socket connection to a remote server
+socket.binaryType = 'arraybuffer';
+socket.emit('player-message', buffer);
 
-    // On the server:
-    socket.on('player-message', function(buffer) { 
-      var player = playerSchema.decode(buffer);
-    }
+// On the server:
+socket.on('player-message', function(buffer) { 
+    var player = playerSchema.decode(buffer);
+}
+```
 
 In this example, the size of payload is only **18 bytes**. If you had used `JSON.stringify` instead, the payload would have been **117 bytes** (10x larger than necessary).
     
 ## Array Example
-    var personSchema = schemapack.build([ "string", "int8", "float32" ]); // Name, age, height
-    
-    var person = [ "Dave", 37, 1.88 ];
-    var buffer = builtPersonSchema.encode(person);
-    var object = builtPersonSchema.decode(buffer);
+```js
+var personSchema = schemapack.build([ "string", "int8", "float32" ]); // Name, age, height
+
+var person = [ "Dave", 37, 1.88 ];
+var buffer = builtPersonSchema.encode(person);
+var object = builtPersonSchema.decode(buffer);
+```
 
 By the way, the last item in nested schema arrays can be repeated. That is, a schema of `[ "string", ["int"] ]` accepts `[ "a", [5] ]`, `[ "a", [5, 10] ]`, etc.
 
@@ -48,15 +52,17 @@ By the way, the last item in nested schema arrays can be repeated. That is, a sc
 
 I was working on a web app that used WebSockets to communicate between client and server. Usually when doing this the client and server just send JSON back and forth to each other. However, when receiving a message the receiver already knows what the format of the message is going to be. Example:
 
-    // Client:
-    var message = { 'sender': 'John', 'contents': 'hi' };
-    socket.emit('chatmessage', message);
+```js
+// Client:
+var message = { 'sender': 'John', 'contents': 'hi' };
+socket.emit('chatmessage', message);
 
-    // Server
-    socket.on('chatmessage', function(message) {
-      // We know message is going to be an object with 'sender' and 'contents' keys
-      // Waste of bandwidth and CPU to continuously send this extraneous data back and forth.
-    });
+// Server
+socket.on('chatmessage', function(message) {
+    // We know message is going to be an object with 'sender' and 'contents' keys
+    // Waste of bandwidth and CPU to continuously send this extraneous data back and forth.
+});
+```
 
 ##### The problems I had with sending JSON back and forth between client and server:
 * It's a complete waste of bandwidth to send all those keys and delimiters when the object format is known.
@@ -74,7 +80,7 @@ I was working on a web app that used WebSockets to communicate between client an
 
 * *Easy:* Don't have to learn a schema language. It's just JSON that matches your object format. To make a schema, just copy and paste the object you were going to send and replace its values with the types they represent. Done.
 * *Speed:* The fastest JavaScript object encoder/decoder available. Even beats native `JSON.stringify` and `JSON.parse`.
-* *Small:* Just 300 lines of code and a single dependency (with no dependencies on the server).
+* *Small:* Just 300 lines of code and no dependencies.
 * *Simple:* Just import the library, build a JSON schema, and call encode/decode. 
 * *No overhead:* When an object is encoded, the resulting buffer consists solely of compact data. Keys, delimiters, etc. are all stripped out and only recreated on the receiving end.
 * *Validation:* If the schema is invalid, an error will be thrown. Likewise, if the object to encode/decode does not match the size of the schema, the program will crash. Useful for ensuring all messages match their format.
@@ -84,12 +90,15 @@ I was working on a web app that used WebSockets to communicate between client an
 
 Just copy schemapack.js in to your project directory and use it like this:
 
-    var schemapack = require('./schemapack');
-    var builtSchema = schemapack.build(yourJSONSchema);
-    // var buffer = builtSchema.encode(object);
-    // var object = builtSchema.decode(buffer);
+```js
+var schemapack = require('./schemapack');
+var builtSchema = schemapack.build(yourJSONSchema);
+var buffer = builtSchema.encode(object);
+var object = builtSchema.decode(buffer);
+console.log(object);
+```
 
-Everything is included in that file. In the `node.js` environment, there are no dependencies. In the browser, the [Buffer shim](https://github.com/feross/buffer) is required.
+Everything is included in that file. In the `node.js` environment, there are no dependencies. In the browser, as long as you use browserify/webpack, there are no dependencies either.
 
 ## API Reference
 
@@ -125,7 +134,9 @@ Everything is included in that file. In the `node.js` environment, there are no 
 
 **Example**: 
 
-    schemapack.changeStringEncoding('ascii');
+```js
+schemapack.changeStringEncoding('ascii');
+```
 
 ### schemapack.addTypeAlias(newTypeName, underlyingType)
 
@@ -135,8 +146,10 @@ Everything is included in that file. In the `node.js` environment, there are no 
 
 **Example**: 
 
-    schemapack.addTypeAlias('int', 'int32');
-    var builtSchema = schemapack.build([ 'bool', 'int' ]);
+```js
+schemapack.addTypeAlias('int', 'int32');
+var builtSchema = schemapack.build([ 'bool', 'int' ]);
+```
 
 ## Here is a table of the available data types for use in your schemas:
 
@@ -161,9 +174,11 @@ Feel free to add your own aliases with `schemapack.addTypeAlias`.
 
 You may need to `npm install` packages like `msgpack` and `protobuf` if you want to include them in the benchmark.
 
-    var tests = require('./tests');
-    tests.runBenchmark();
-    tests.runTestSuite();
+```js
+var tests = require('./tests');
+tests.runBenchmark();
+tests.runTestSuite();
+```
 
 ## Compatibility
 
