@@ -1,6 +1,6 @@
 # schemapack
 
-Efficiently encode your JavaScript objects in to compact byte buffers and then decode them back in to the JavaScript objects on the receiver. Integrates very well with WebSockets.
+Efficiently encode your JavaScript objects in to compact byte buffers and then decode them back in to JavaScript objects on the receiver. Integrates very well with WebSockets.
 
 ## Example
 
