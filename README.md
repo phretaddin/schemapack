@@ -2,7 +2,7 @@
 
 Efficiently encode your JavaScript objects in to compact byte buffers and then decode them back in to the JavaScript objects on the receiver. Integrates very well with WebSockets.
 
-## Object Example
+## Example
 
 ```js
 // On both the client and server:
@@ -36,17 +36,6 @@ socket.on('player-message', function(buffer) {
 ```
 
 In this example, the size of payload is only **18 bytes**. If you had used `JSON.stringify` instead, the payload would have been **117 bytes** (10x larger than necessary).
-    
-## Array Example
-```js
-var personSchema = schemapack.build([ "string", "int8", "float32" ]); // Name, age, height
-
-var person = [ "Dave", 37, 1.88 ];
-var buffer = builtPersonSchema.encode(person);
-var object = builtPersonSchema.decode(buffer);
-```
-
-By the way, the last item in nested schema arrays can be repeated. That is, a schema of `[ "string", ["int"] ]` accepts `[ "a", [5] ]`, `[ "a", [5, 10] ]`, etc.
 
 ## Motivation
 
