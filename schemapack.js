@@ -101,9 +101,7 @@ function readString(buffer, strLen) {
   }
 }
 
-Array.prototype.peek = function() {
-  return this[this.length - 1];
-}
+function peek(arr) { return arr[arr.length - 1]; }
 
 function calculateByteCount(obj, schema) {
   var refStack = [ obj ];
@@ -135,11 +133,11 @@ function calculateByteCount(obj, schema) {
 
         break;
       }
-      case "__obj": { refStack.push(refStack.peek()[key]); break; }
-      case "__arr": { refStack.push(refStack.peek()[key]); break; }
+      case "__obj": { refStack.push(peek(refStack)[key]); break; }
+      case "__arr": { refStack.push(peek(refStack)[key]); break; }
       case "string":
       case "varuint":
-      case "varint": { byteCount += byteCountDict[dataType](refStack.peek()[key]); break; }
+      case "varint": { byteCount += byteCountDict[dataType](peek(refStack)[key]); break; }
       case "__objend": { refStack.pop(); break; }
       default: { byteCount += byteCountDict[dataType](); break; }
     }
@@ -156,7 +154,7 @@ function encode(json, schema) {
   for (var i = 0; i < schema.length; i += 2) {
     var key = schema[i];
     var dataType = schema[i + 1];
-    var val = refStack.peek()[key];
+    var val = peek(refStack)[key];
 
     switch (dataType) {
       case "__arrend": {
@@ -193,7 +191,7 @@ function decode(buffer, schema, isArray) {
   for (var i = 0; i < schema.length; i += 2) {
     var key = schema[i];
     var dataType = schema[i + 1];
-    var val = refStack.peek();
+    var val = peek(refStack);
 
     switch (dataType) {
       case "__arrend": {
@@ -221,7 +219,7 @@ function decode(buffer, schema, isArray) {
     }
   }
 
-  return refStack.peek();
+  return peek(refStack);
 }
 
 var byteCountDict = {
