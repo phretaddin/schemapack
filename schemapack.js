@@ -6,9 +6,7 @@
 var byteOffset = 0;
 var strEnc = "utf8";
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-  var Buffer = require('buffer').Buffer;
-}
+var Buffer = require('buffer').Buffer;
 
 var addTypeAlias = function(newTypeName, underlyingType) {
   byteCountDict[newTypeName] = byteCountDict[underlyingType];
@@ -312,7 +310,7 @@ function build(schema) {
 
 addTypeAlias('bool', 'boolean');
 
-module.exports = {
+module.exports = exports = {
   "build": build,
   "addTypeAlias": addTypeAlias,
   "changeStringEncoding": changeStringEncoding
