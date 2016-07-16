@@ -24,6 +24,7 @@ var player = {
     name: "John",
     stats: { str: 87, agi: 42, int: 22 }
 };
+
 var buffer = playerSchema.encode(player);
 // Create a socket connection to a remote server
 socket.binaryType = 'arraybuffer';
@@ -68,7 +69,7 @@ socket.on('chatmessage', function(message) {
 ## Benefits
 
 * *Easy:* Don't have to learn a schema language. It's just JSON that matches your object format. To make a schema, just copy and paste the object you were going to send and replace its values with the types they represent. Done.
-* *Speed:* The fastest JavaScript object encoder/decoder available. Even beats native `JSON.stringify` and `JSON.parse`.
+* *Speed:* The fastest JavaScript object encoder/decoder available. Even beats native `JSON.stringify` and `JSON.parse` for many objects.
 * *Small:* Just 300 lines of code and no dependencies.
 * *Simple:* Just import the library, build a JSON schema, and call encode/decode. 
 * *No overhead:* When an object is encoded, the resulting buffer consists solely of compact data. Keys, delimiters, etc. are all stripped out and only recreated on the receiving end.
@@ -91,56 +92,67 @@ Everything is included in that file. In the `node.js` environment, there are no 
 
 ## API Reference
 
-### schemapack.build(schema)
+### ```schemapack.build(schema)```
 
-**Description:** This function takes a JavaScript object that matches the structure and format of the objects you will encode. To create a `schema`, copy and paste the JSON of your object you will encode and replace its key values with the data types they represent. This function then takes the schema, parses it, sorts it (for deterministic iteration), validates it, flattens it (for efficient iteration), and then saves it for use in the coming encode/decode functions.
+##### Description: 
+This function takes a JavaScript object that matches the structure and format of the objects you will encode. To create a `schema`, copy and paste the JSON of your object you will encode and replace its key values with the data types they represent. This function then takes the schema, parses it, sorts it (for deterministic iteration), validates it, flattens it (for efficient iteration), and then saves it for use in the coming encode/decode functions.
 
-**Arguments:** `schema` - A JavaScript object matching the structure of the object you will encode.
+##### Arguments:
+* `schema` - A JavaScript object matching the structure of the object you will encode.
 
-**Returns**: An object with `encode` and `decode` functions that operate based on `schema`.
+##### Returns: 
+An object with `encode` and `decode` functions that operate based on `schema`.
 
-### encode(obj)
+### `encode(obj)`
 
-**Description:** This function is called from the object returned from `schemapack.build`. It uses the schema specified in the `build` function to pack all the data in to a compact buffer (usually for then sending over the internet).
+##### Description:
+This function is called from the object returned from `schemapack.build`. It uses the schema specified in the `build` function to pack all the data in to a compact buffer (usually for then sending over the internet).
 
-**Arguments:** *`obj`* - The Javascript object you want to encode in to a packed binary buffer.
+##### Arguments:
+* *`obj`* - The Javascript object you want to encode in to a packed binary buffer.
 
-**Returns**: `Buffer` consisting soley of the bytes required to reproduce the object with decode.
+##### Returns:
+`Buffer` consisting soley of the bytes required to reproduce the object with decode.
 
-### decode(buffer)
+### `decode(buffer)`
 
-**Description:** This function is called from the object returned from `schemapack.build`. It uses the schema specified in the `build` function to decode the passed in buffer back in to a JavaScript object.
+##### Description:
+This function is called from the object returned from `schemapack.build`. It uses the schema specified in the `build` function to decode the passed in buffer back in to a JavaScript object.
 
-**Arguments:** *`buffer`* - The buffer that was returned from the corresponding `encode` call.
+##### Arguments:
+* *`buffer`* - The buffer that was returned from the corresponding `encode` call.
 
-**Returns**: `JavaScript object` recreated from given schema and buffer.
+##### Returns:
+`JavaScript object` recreated from given schema and buffer.
 
-### schemapack.changeStringEncoding(stringEncoding)
+### `schemapack.changeStringEncoding(stringEncoding)`
 
-**Description:** The string encoding to use for all strings encoded/decoded from schemapack. UTF8 is the default and is the most standardized string encoding to use, while also being the most byte-efficient. However, if you are only using English characters and symbols, changing the string encoding to `ascii` will make encoding/decoding much faster.
+##### Description:
+The string encoding to use for all strings encoded/decoded from schemapack. UTF8 is the default and is the most standardized string encoding to use, while also being the most byte-efficient. However, if you are only using English characters and symbols, changing the string encoding to `ascii` will make encoding/decoding much faster.
 
-**Arguments:** *`stringEncoding`*: The string encoding to now use. Choose between `[ 'ascii', 'utf8', 'utf16le', 'ucs2', 'base64', 'binary', 'hex' ]`.
+##### Arguments:
+* *`stringEncoding`*: The string encoding to now use. Choose between `'ascii'`, `'utf8'`, `'utf16le'`, `'ucs2'`, `'base64'`, `'binary'`, and `'hex'`.
 
-**Example**: 
+##### Example:
 
 ```js
 schemapack.changeStringEncoding('ascii');
 ```
 
-### schemapack.addTypeAlias(newTypeName, underlyingType)
+### `schemapack.addTypeAlias(newTypeName, underlyingType)`
 
-**Arguments:** 
+##### Arguments: 
  * *`newTypeName`*: The name of type that will be used as an alias for the underlying type.
  * *`underlyingType`*: One of the above types in the 'available data types' table.
 
-**Example**: 
+##### Example: 
 
 ```js
 schemapack.addTypeAlias('int', 'int32');
 var builtSchema = schemapack.build([ 'bool', 'int' ]);
 ```
 
-## Here is a table of the available data types for use in your schemas:
+### Here is a table of the available data types for use in your schemas:
 
 | Type Name | Aliases | Bytes                                                                                                                                                         | Range of Values                 |
 |-----------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------|
@@ -157,7 +169,7 @@ var builtSchema = schemapack.build([ 'bool', 'int' ]);
 | varuint   |         | 1 byte when 0 to 127<br /> 2 bytes when 128 to 16,383<br /> 3 bytes when 16,385 to 2,097,151<br /> 4 bytes when 2,097,152 to 268,435,455<br /> etc.           | 0 to 9,007,199,254,740,991      |
 | varint    |         | 1 byte when -64 to 63<br /> 2 bytes when -8,192 to 8,191<br /> 3 bytes when -1,048,576 to 1,048,575<br /> 4 bytes when -134,217,728 to 134,217,727<br /> etc. | -1073741824 - 1073741823        |
 
-Feel free to add your own aliases with `schemapack.addTypeAlias`.
+Feel free to add your own aliases with `schemapack.addTypeAlias(newTypeName, underlyingType)`.
 
 ## Tests
 
