@@ -109,25 +109,6 @@ function calculateByteCount(obj, schema) {
   var refStack = [ obj ];
   var byteCount = 0;
 
-  /*
-  if (schema.constructor === Array) {
-    // check schema.length
-    // check obj.length
-    // if obj.length - schema.length > 0
-    var repeatCount = obj.length - (schema.length / 2);
-    if (repeatCount > 0) {
-      var repeatedDataType = schema.peek();
-      if (repeatedDataType === "varuint" || repeatedDataType === "varint" || repeatedDataType === "string") {
-        for (var j = (schema.length / 2); j < obj.length; j++) {
-          byteCount += byteCountDict[repeatedDataType](obj[j]);
-        }
-      } else {
-        byteCount += (repeatCount * byteCountDict[repeatedDataType]());
-      }
-    }
-  }
-  */
-
   for (var i = 0; i < schema.length; i += 2) {
     var key = schema[i];
     var dataType = schema[i + 1];
@@ -287,8 +268,6 @@ var writeTypeDict = {
   "varuint": function(buffer, val) { writeVarUInt(buffer, val); },
   "varint": function(buffer, val) { writeVarInt(buffer, val); }
 };
-
-// problem: if the outer element is an array it doesnt count it. need to check that too
 
 function getFlattened(schema) {
   var allTypes = Object.keys(byteCountDict);
