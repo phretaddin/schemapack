@@ -7,7 +7,7 @@ var byteOffset = 0;
 var strEnc = "utf8";
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-	var Buffer = require('buffer').Buffer;
+  var Buffer = require('buffer').Buffer;
 }
 
 var addTypeAlias = function(newTypeName, underlyingType) {
@@ -289,7 +289,7 @@ function getFlattened(schema) {
       } else if (typeof val === 'object') {
         flattened.push(key, '__obj');
         flatten(val, [key, '__obj']);
-				flattened.push(key, '__objend');
+        flattened.push(key, '__objend');
       } else {
         var dataType = val.trim().toLowerCase();
 
