@@ -112,11 +112,11 @@ console.log(object.age); // 32
 console.log(object.weight); // 188.5
 ```
 
-### Change the encoding used for strings
+### Set the encoding used for strings
 `'utf8'` is the default. If you only need to support English, changing the string encoding to `'ascii'` can increase speed. Choose between `'ascii'`, `'utf8'`, `'utf16le'`, `'ucs2'`, `'base64'`, `'binary'`, and `'hex'`.
 
 ```js
-schemapack.changeStringEncoding('ascii');
+schemapack.setStringEncoding('ascii');
 ```
 
 ### Add type aliases
