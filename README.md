@@ -97,7 +97,7 @@ var person = schemapack.build({
 }); // This parses, sorts, validates, flattens, and then saves the resulting schema.
 ```
 
-#### Encode your objects:
+### Encode your objects:
 ```js
 var dave = {
   name: 'John Smith',
