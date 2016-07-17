@@ -40,17 +40,16 @@ In this example, the size of payload is only **18 bytes**. If you had used `JSON
 
 ## Motivation
 
-I was working on a web app that used WebSockets to communicate between client and server. Usually when doing this the client and server just send JSON back and forth to each other. However, when receiving a message the receiver already knows what the format of the message is going to be. Example:
+I was working on an app that used WebSockets to talk between client and server. Usually when doing this the client and server just send JSON back and forth. However, when receiving a message the receiver already knows what the format of the message is going to be. Example:
 
 ```js
 // Client:
 var message = { 'sender': 'John', 'contents': 'hi' };
-socket.emit('chatmessage', message);
+socket.emit('chat', message);
 
 // Server
-socket.on('chatmessage', function(message) {
-    // We know message is going to be an object with 'sender' and 'contents' keys
-    // Waste of bandwidth and CPU to continuously send this extraneous data back and forth.
+socket.on('chat', function(message) {
+  // We know message is going to be an object with 'sender' and 'contents' keys
 });
 ```
 
@@ -61,20 +60,10 @@ socket.on('chatmessage', function(message) {
 * There's no validation so there's potential to have silent errors when accidentally sending the wrong message.
 
 ##### Why I didn't just use an existing schema packing library:
-* *Too complicated:* I didn't want to have to learn a schema language and reformat all of my objects to match it.
-* *Too slow:* I benchmarked a couple of other popular libraries and they were often 10x slower than using the native `JSON.stringify` and `JSON.parse`. This library is faster than even those native methods.
-* *Too large:* I didn't want to use a behemoth library with tens of thousands of lines of code and tons of dependencies for something so simple. This library is less than 400 lines of code.
+* *Too complicated:* I didn't want to have to learn a schema language and format a schema for every object.
+* *Too slow:* I benchmarked a couple of other popular libraries and they were often 10x slower than using the native `JSON.stringify` and `JSON.parse`. This library is often faster than even those optimized methods.
+* *Too large:* I didn't want to use a behemoth library with tens of thousands of lines of code and many dependencies for something so simple. This library is less than 400 lines of code with no dependencies.
 * *Too much overhead:* Some of the other libraries that allow you to specify a schema still waste a lot of bytes on padding/keys/etc. I desgined this library to not waste a single byte on anything that isn't your data.
-
-## Benefits
-
-* *Easy:* Don't have to learn a schema language. It's just JSON that matches your object format. To make a schema, just copy and paste the object you were going to send and replace its values with the types they represent. Done.
-* *Speed:* The fastest JavaScript object encoder/decoder available. Even beats native `JSON.stringify` and `JSON.parse` for many objects.
-* *Small:* Just 300 lines of code and no dependencies.
-* *Simple:* Just import the library, build a JSON schema, and call encode/decode. 
-* *No overhead:* When an object is encoded, the resulting buffer consists solely of compact data. Keys, delimiters, etc. are all stripped out and only recreated on the receiving end.
-* *Validation:* If the schema is invalid, an error will be thrown. Likewise, if the object to encode/decode does not match the size of the schema, the program will crash. Useful for ensuring all messages match their format.
-* *Bandwidth Efficiency:* The amount of bytes sent over the wire is often 10x or more less than the JSON alternative, due to removing keys and delimiters along with using compact data types.
 
 ## Installation
 
