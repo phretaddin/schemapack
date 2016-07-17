@@ -26,7 +26,7 @@ var player = {
 };
 
 var buffer = playerSchema.encode(player);
-// Create a socket connection to a remote server
+// Create a socket connection to server
 socket.binaryType = 'arraybuffer';
 socket.emit('player-message', buffer);
 
@@ -36,7 +36,7 @@ socket.on('player-message', function(buffer) {
 }
 ```
 
-In this example, the size of payload is only **18 bytes**. If you had used `JSON.stringify` instead, the payload would have been **117 bytes** (10x larger than necessary).
+In this example, the size of payload is only **18 bytes**. If you had used `JSON.stringify` instead, the payload would have been **117 bytes** (6.5x larger than necessary).
 
 ## Motivation
 
