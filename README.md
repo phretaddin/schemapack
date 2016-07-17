@@ -53,13 +53,13 @@ socket.on('chat', function(message) {
 });
 ```
 
-##### The problems I had with sending JSON back and forth between client and server:
+### The problems I had with sending JSON back and forth between client and server:
 * It's a complete waste of bandwidth to send all those keys and delimiters when the object format is known.
 * Even though `JSON.stringify` and `JSON.parse` are optimized native functions, they're slower than buffers.
 * There's no implicit central message repository where I can look at the format of all my different packets.
 * There's no validation so there's potential to have silent errors when accidentally sending the wrong message.
 
-##### Why I didn't just use an existing schema packing library:
+### Why I didn't just use an existing schema packing library:
 * *Too complicated:* I didn't want to have to learn a schema language and format a schema for every object.
 * *Too slow:* I benchmarked a couple of other popular libraries and they were often 10x slower than using the native `JSON.stringify` and `JSON.parse`. This library is often faster than even those optimized methods.
 * *Too large:* I didn't want to use a behemoth library with tens of thousands of lines of code and many dependencies for something so simple. This library is less than 400 lines of code with no dependencies.
