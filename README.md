@@ -69,8 +69,8 @@ socket.on('chat', function(message) {
 
 These were performed via encoding/decoding the `player` object at the start of this page with `ascii` encoding. Please note that these results are slightly variable and that each library tested may do better with other object structures. I encourage you to run these benchmarks yourself with your own objects to see what is best for you.
 
-![Speed](http://i.imgur.com/fhtCGHi.png "Speed")
 ![Size](http://i.imgur.com/WW1lZdy.png "Size")
+![Speed](http://i.imgur.com/Uh43055.png "Speed")
 
 ## Installation
 
