@@ -157,7 +157,8 @@ function calculateByteCount(obj, schema) {
   return byteCount;  
 }
 
-function encode(json, schema) {
+function encode(json, schema, schemaIsArray) {
+  if (schemaIsArray) { json = [json]; }
   var buffer = Buffer.allocUnsafe(calculateByteCount(json, schema));
   var refStack = [ json ];
   byteOffset = 0;
@@ -181,8 +182,8 @@ function encode(json, schema) {
   return buffer;
 }
 
-function decode(buffer, schema, isArray) {
-  var refStack = [ isArray ? [] : {} ];
+function decode(buffer, schema, schemaIsArray) {
+  var refStack = [ schemaIsArray ? [] : {} ];
   var arrayLengthStack = [];
   
   byteOffset = 0;
@@ -204,7 +205,7 @@ function decode(buffer, schema, isArray) {
     }
   }
 
-  return peek(refStack);
+  return schemaIsArray ? peek(refStack)[0] : peek(refStack);
 }
 
 var byteCountDict = {
@@ -252,7 +253,7 @@ var writeTypeDict = {
   "varint": function(buffer, val) { writeVarInt(buffer, val); }
 };
 
-function getFlattened(schema) {
+function getFlattened(schema, schemaIsArray) {
   var allTypes = Object.keys(byteCountDict);
 
   function flatten(json, acc, inArray) {
@@ -282,16 +283,25 @@ function getFlattened(schema) {
     }
   }
   var flattened = [];
-  flatten(schema, [], schema.constructor === Array);
+
+  if (schemaIsArray) {
+    flattened.push(0, '__arr');
+    flatten(schema, [], true);
+    flattened.push(schema.length, '__arrend');
+  } else {
+    flatten(schema, [], false);
+  }
+  
   return flattened;
 }
 
 function build(schema) { 
-  var builtSchema = getFlattened(schema);
-
+  var schemaIsArray = schema.constructor === Array;
+  var builtSchema = getFlattened(schema, schemaIsArray);
+  
   return {
-    "encode": function(json) { return encode(json, builtSchema); },
-    "decode": function(buffer) { return decode(buffer, builtSchema, schema.constructor === Array); }
+    "encode": function(json) { return encode(json, builtSchema, schemaIsArray); },
+    "decode": function(buffer) { return decode(buffer, builtSchema, schemaIsArray); }
   }
 }
 
