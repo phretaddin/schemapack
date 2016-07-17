@@ -90,7 +90,7 @@ var schemapack = require('./schemapack');
 
 ### Build your schema
 ```js
-var person = schemapack.build({
+var personSchema = schemapack.build({
   name: 'string',
   age: 'uint8',
   weight: 'float32'
@@ -99,18 +99,18 @@ var person = schemapack.build({
 
 ### Encode your objects:
 ```js
-var dave = {
+var john = {
   name: 'John Smith',
   age: 32,
   weight: 188.5
 };
-var buffer = person.encode(dave);
+var buffer = personSchema.encode(john);
 console.log(buffer); // <Buffer 20 0a 4a 6f 68 6e 20 53 6d 69 74 68 43 3c 80 00>
 ```
 
 ### Decode your buffers back to objects
 ```js
-var object = person.decode(buffer);
+var object = personSchema.decode(buffer);
 console.log(object.name); // John Smith
 console.log(object.age); // 32
 console.log(object.weight); // 188.5
