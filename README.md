@@ -7,22 +7,22 @@ Efficiently encode your JavaScript objects in to compact byte buffers and then d
 ```js
 // On both the client and server:
 var playerSchema = schemapack.build({
-  health: "uint16",
-  level: "uint8",
-  jumping: "boolean",
-  position: [ "varuint" ],
-  name: "string",
-  stats: { str: 'uint8', agi: 'uint8', int: 'uint8' }
+    health: "uint16",
+    level: "uint8",
+    jumping: "boolean",
+    position: [ "varuint" ],
+    name: "string",
+    stats: { str: 'uint8', agi: 'uint8', int: 'uint8' }
 });
 
 // On the client:
 var player = {
-  health: 4000,
-  level: 50,
-  jumping: false,
-  position: [ 20, 400, 300 ],
-  name: "John",
-  stats: { str: 87, agi: 42, int: 22 }
+    health: 4000,
+    level: 50,
+    jumping: false,
+    position: [ 20, 400, 300 ],
+    name: "John",
+    stats: { str: 87, agi: 42, int: 22 }
 };
 
 var buffer = playerSchema.encode(player);
@@ -32,7 +32,7 @@ socket.emit('player-message', buffer);
 
 // On the server:
 socket.on('player-message', function(buffer) { 
-  var player = playerSchema.decode(buffer);
+    var player = playerSchema.decode(buffer);
 }
 ```
 
@@ -49,7 +49,7 @@ socket.emit('chat', message);
 
 // Server
 socket.on('chat', function(message) {
-  // We know message is going to be an object with 'sender' and 'contents' keys
+    // We know message is going to be an object with 'sender' and 'contents' keys
 });
 ```
 
@@ -80,18 +80,18 @@ var schemapack = require('./schemapack');
 ### Build your schema
 ```js
 var personSchema = schemapack.build({
-  name: 'string',
-  age: 'uint8',
-  weight: 'float32'
+    name: 'string',
+    age: 'uint8',
+    weight: 'float32'
 }); // This parses, sorts, validates, flattens, and then saves the resulting schema.
 ```
 
 ### Encode your objects:
 ```js
 var john = {
-  name: 'John Smith',
-  age: 32,
-  weight: 188.5
+    name: 'John Smith',
+    age: 32,
+    weight: 188.5
 };
 var buffer = personSchema.encode(john);
 console.log(buffer); // <Buffer 20 0a 4a 6f 68 6e 20 53 6d 69 74 68 43 3c 80 00>
@@ -116,8 +116,8 @@ schemapack.changeStringEncoding('ascii');
 ```js
 schemapack.addTypeAlias('int', 'int32');
 var builtSchema = schemapack.build({
-  'name': 'string',
-  'age': 'int'
+    'name': 'string',
+    'age': 'int'
 });
 ```
 
