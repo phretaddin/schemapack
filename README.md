@@ -61,7 +61,7 @@ socket.on('chat', function(message) {
 
 ### Why I didn't just use an existing schema packing library:
 * *Too complicated:* I didn't want to have to learn a schema language and format a schema for every object.
-* *Too slow:* I benchmarked a couple of other popular libraries and they were often 10x slower than using the native `JSON.stringify` and `JSON.parse`. This library is often faster than even those optimized methods.
+* *Too slow:* I benchmarked a couple of other popular libraries and they were often 10x slower than using the native `JSON.stringify` and `JSON.parse`. This library is often faster than even those native methods.
 * *Too large:* I didn't want to use a behemoth library with tens of thousands of lines of code and many dependencies for something so simple. This library is less than 400 lines of code with no dependencies.
 * *Too much overhead:* Some of the other libraries that allow you to specify a schema still waste a lot of bytes on padding/keys/etc. I desgined this library to not waste a single byte on anything that isn't your data.
 
