@@ -11,14 +11,14 @@ var addTypeAlias = function(newTypeName, underlyingType) {
   byteCountDict[newTypeName] = byteCountDict[underlyingType];
   readTypeDict[newTypeName] = readTypeDict[underlyingType];
   writeTypeDict[newTypeName] = writeTypeDict[underlyingType];
-}
+};
 
-var changeStringEncoding = function(stringEncoding) {
+var setStringEncoding = function(stringEncoding) {
   var requested = stringEncoding.trim().toLowerCase();
   var available = [ 'ascii', 'utf8', 'utf16le', 'ucs2', 'base64', 'binary', 'hex' ];
   if (available.indexOf(requested) > -1) { strEnc = requested; }
   else { throw new TypeError("String encoding not available"); }
-}
+};
 
 function getVarUIntByteLength(value) {
   return Math.floor(Math.log(value) / Math.log(128)) + 1;
@@ -310,5 +310,5 @@ addTypeAlias('bool', 'boolean');
 module.exports = exports = {
   "build": build,
   "addTypeAlias": addTypeAlias,
-  "changeStringEncoding": changeStringEncoding
+  "setStringEncoding": setStringEncoding
 };
