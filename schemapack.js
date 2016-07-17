@@ -3,10 +3,9 @@
 
 'use strict';
 
-var byteOffset = 0;
-var strEnc = "utf8";
-
 var Buffer = require('buffer').Buffer;
+var byteOffset = 0;
+var strEnc = 'utf8';
 
 var addTypeAlias = function(newTypeName, underlyingType) {
   byteCountDict[newTypeName] = byteCountDict[underlyingType];
@@ -18,7 +17,7 @@ var changeStringEncoding = function(stringEncoding) {
   var requested = stringEncoding.trim().toLowerCase();
   var available = [ 'ascii', 'utf8', 'utf16le', 'ucs2', 'base64', 'binary', 'hex' ];
   if (available.indexOf(requested) > -1) { strEnc = requested; }
-  else { throw "String encoding not available"; }
+  else { throw new TypeError("String encoding not available"); }
 }
 
 function getVarUIntByteLength(value) {
@@ -101,6 +100,40 @@ function readString(buffer, strLen) {
 
 function peek(arr) { return arr[arr.length - 1]; }
 
+function getArrayByteCount(arr, key, repeatedDataType) {
+  var len = arr.length;
+  var byteCount = getVarUIntByteLength(len);
+  var repeatCount = len - key;
+
+  if (repeatCount > 0) {
+    if (repeatedDataType === "varuint" || repeatedDataType === "varint" || repeatedDataType === "string") {
+      for (var j = key; j < len; j++) {
+        byteCount += byteCountDict[repeatedDataType](arr[j]);
+      }
+    } else {
+      byteCount += (repeatCount * byteCountDict[repeatedDataType]());
+    }
+  }
+
+  return byteCount;
+}
+
+function writeArray(arr, key, repeatedDataType, buffer) {
+  var repeatCount = arr.length - key;
+
+  if (repeatCount > 0) {
+    for (var j = key; j < arr.length; j++) {
+      writeTypeDict[repeatedDataType](buffer, arr[j]);
+    }
+  }
+}
+
+function readArray(len, key, val, repeatedDataType, buffer) {
+  for (var j = key; j < len; j++) {
+    readTypeDict[repeatedDataType](buffer, j, val);
+  }
+}
+
 function calculateByteCount(obj, schema) {
   var refStack = [ obj ];
   var byteCount = 0;
@@ -110,27 +143,7 @@ function calculateByteCount(obj, schema) {
     var dataType = schema[i + 1];
 
     switch (dataType) {
-      case "__arrend": {
-        var arr = refStack.pop();
-        var len = arr.length;
-        
-        byteCount += getVarUIntByteLength(len);
-
-        var repeatCount = len - key;
-
-        if (repeatCount > 0) {
-          var repeatedDataType = schema[i - 1];
-          if (repeatedDataType === "varuint" || repeatedDataType === "varint" || repeatedDataType === "string") {
-            for (var j = key; j < len; j++) {
-              byteCount += byteCountDict[repeatedDataType](arr[j]);
-            }
-          } else {
-            byteCount += (repeatCount * byteCountDict[repeatedDataType]());
-          }
-        }
-
-        break;
-      }
+      case "__arrend": { byteCount += getArrayByteCount(refStack.pop(), key, schema[i - 1]); break; }
       case "__obj": { refStack.push(peek(refStack)[key]); break; }
       case "__arr": { refStack.push(peek(refStack)[key]); break; }
       case "string":
@@ -155,19 +168,7 @@ function encode(json, schema) {
     var val = peek(refStack)[key];
 
     switch (dataType) {
-      case "__arrend": {
-        var arr = refStack.pop();
-        var repeatCount = arr.length - key;
-
-        if (repeatCount > 0) {
-          var repeatedDataType = schema[i - 1];
-          for (var j = key; j < arr.length; j++) {
-            writeTypeDict[repeatedDataType](buffer, arr[j]);
-          }
-        }
-
-        break;
-      }
+      case "__arrend": { writeArray(refStack.pop(), key, schema[i - 1], buffer); break; }
       case "__arr": { writeVarUInt(buffer, val.length); refStack.push(val); break; }
       case "__obj": { refStack.push(val); break; }
       case "string":
@@ -184,7 +185,7 @@ function decode(buffer, schema, isArray) {
   var refStack = [ isArray ? [] : {} ];
   var arrayLengthStack = [];
   
-  byteOffset = 0;  
+  byteOffset = 0;
 
   for (var i = 0; i < schema.length; i += 2) {
     var key = schema[i];
@@ -192,22 +193,8 @@ function decode(buffer, schema, isArray) {
     var val = peek(refStack);
 
     switch (dataType) {
-      case "__arrend": {
-        var repeatedDataType = schema[i - 1];
-        var len = arrayLengthStack.pop();
-        for (var j = key; j < len; j++) { readTypeDict[repeatedDataType](buffer, j, val); }
-        refStack.pop();
-        break;
-      }
-      case "__arr": {
-        var decodedLength = readVarUInt(buffer);
-
-        var arr = [];
-        val[key] = arr;
-        arrayLengthStack.push(decodedLength);
-        refStack.push(arr);
-        break;
-      }
+      case "__arrend": { readArray(arrayLengthStack.pop(), key, val, schema[i - 1], buffer); refStack.pop(); break; }
+      case "__arr": { arrayLengthStack.push(readVarUInt(buffer)); var arr = []; val[key] = arr; refStack.push(arr); break; }
       case "__obj": { var obj = {}; val[key] = obj; refStack.push(obj); break; }
       case "string":
       case "varuint":
@@ -290,7 +277,7 @@ function getFlattened(schema) {
         var dataType = val.trim().toLowerCase();
 
         if (allTypes.indexOf(dataType) > -1) { flattened.push(key, dataType); }
-        else { throw "Invalid data type in schema."; }
+        else { throw new TypeError("Invalid data type in schema."); }
       }
     }
   }
@@ -314,4 +301,4 @@ module.exports = exports = {
   "build": build,
   "addTypeAlias": addTypeAlias,
   "changeStringEncoding": changeStringEncoding
-}
+};
