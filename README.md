@@ -36,7 +36,7 @@ socket.on('player-message', function(buffer) {
 }
 ```
 
-In this example, the size of payload is only **18 bytes**. If you had used `JSON.stringify` instead, the payload would have been **117 bytes** (6.5x larger than necessary).
+In this example, the size of payload is only **18 bytes**. Using `JSON.stringify` instead causes the payload to be **117 bytes**.
 
 ## Motivation
 
