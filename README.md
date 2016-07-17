@@ -65,6 +65,13 @@ socket.on('chat', function(message) {
 * *Too large:* I didn't want to use a behemoth library with tens of thousands of lines of code and many dependencies for something so simple. This library is less than 400 lines of code with no dependencies.
 * *Too much overhead:* Some of the other libraries that allow you to specify a schema still waste a lot of bytes on padding/keys/etc. I desgined this library to not waste a single byte on anything that isn't your data.
 
+## Benchmarks
+
+These were performed via encoding/decoding the `player` object at the start of this page with `ascii` encoding. Please note that these results are slightly variable and that each library tested may do better with other object structures. I encourage you to run these benchmarks yourself with your own objects to see what is best for you.
+
+![Speed](http://i.imgur.com/fhtCGHi.png "Speed")
+![Size](http://i.imgur.com/WW1lZdy.png "Size")
+
 ## Installation
 
 On the server, you can just copy `schemapack.js` in to your project folder and `require` it. 
