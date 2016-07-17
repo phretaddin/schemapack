@@ -7,22 +7,22 @@ Efficiently encode your JavaScript objects in to compact byte buffers and then d
 ```js
 // On both the client and server:
 var playerSchema = schemapack.build({
-    health: "uint16",
-    level: "uint8",
-    jumping: "boolean",
-    position: [ "varuint" ],
-    name: "string",
-    stats: { str: 'uint8', agi: 'uint8', int: 'uint8' }
+  health: "uint16",
+  level: "uint8",
+  jumping: "boolean",
+  position: [ "varuint" ],
+  name: "string",
+  stats: { str: 'uint8', agi: 'uint8', int: 'uint8' }
 });
 
 // On the client:
 var player = {
-    health: 4000,
-    level: 50,
-    jumping: false,
-    position: [ 20, 400, 300 ],
-    name: "John",
-    stats: { str: 87, agi: 42, int: 22 }
+  health: 4000,
+  level: 50,
+  jumping: false,
+  position: [ 20, 400, 300 ],
+  name: "John",
+  stats: { str: 87, agi: 42, int: 22 }
 };
 
 var buffer = playerSchema.encode(player);
@@ -32,7 +32,7 @@ socket.emit('player-message', buffer);
 
 // On the server:
 socket.on('player-message', function(buffer) { 
-    var player = playerSchema.decode(buffer);
+  var player = playerSchema.decode(buffer);
 }
 ```
 
@@ -116,8 +116,8 @@ schemapack.changeStringEncoding('ascii');
 ```js
 schemapack.addTypeAlias('int', 'int32');
 var builtSchema = schemapack.build({
-    'name': 'string',
-    'age': 'int'
+  'name': 'string',
+  'age': 'int'
 });
 ```
 
