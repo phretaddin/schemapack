@@ -7,22 +7,18 @@ Efficiently encode your JavaScript objects in to compact byte buffers and then d
 ```js
 // On both the client and server:
 var playerSchema = schemapack.build({
-    health: "uint16",
-    level: "uint8",
+    health: "varuint",
     jumping: "boolean",
-    position: [ "varuint" ],
-    name: "string",
-    stats: { str: 'uint8', agi: 'uint8', int: 'uint8' }
+    position: [ "float32" ],
+    attributes: { str: 'uint8', agi: 'uint8', int: 'uint8' }
 });
 
 // On the client:
 var player = {
     health: 4000,
-    level: 50,
     jumping: false,
-    position: [ 20, 400, 300 ],
-    name: "John",
-    stats: { str: 87, agi: 42, int: 22 }
+    position: [ 322.572, 159.281, 23.775 ],
+    attributes: { str: 87, agi: 42, int: 22 }
 };
 
 var buffer = playerSchema.encode(player);
@@ -36,7 +32,7 @@ socket.on('player-message', function(buffer) {
 }
 ```
 
-In this example, the size of payload is only **18 bytes**. Using `JSON.stringify` instead causes the payload to be **117 bytes**.
+In this example, the size of payload is only **19 bytes**. Using `JSON.stringify` instead causes the payload to be **109 bytes**.
 
 ## Motivation
 
