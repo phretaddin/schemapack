@@ -5,7 +5,7 @@
 
 var Buffer = require('buffer').Buffer;
 var byteOffset = 0;
-var strEnc = 'ascii';
+var strEnc = 'utf8';
 var aliasTypes = { };
 
 function getEveryType() {
