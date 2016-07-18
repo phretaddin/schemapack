@@ -82,7 +82,7 @@ var schemapack = require('./schemapack');
 
 ## API
 
-### Build your schema
+### Build your schema:
 ```js
 var personSchema = schemapack.build({
     name: 'string',
@@ -102,7 +102,7 @@ var buffer = personSchema.encode(john);
 console.log(buffer); // <Buffer 20 0a 4a 6f 68 6e 20 53 6d 69 74 68 43 3c 80 00>
 ```
 
-### Decode your buffers back to objects
+### Decode your buffers back to objects:
 ```js
 var object = personSchema.decode(buffer);
 console.log(object.name); // John Smith
@@ -110,14 +110,14 @@ console.log(object.age); // 32
 console.log(object.weight); // 188.5
 ```
 
-### Set the encoding used for strings
+### Set the encoding used for strings:
 `'utf8'` is the default. If you only need to support English, changing the string encoding to `'ascii'` can increase speed. Choose between `'ascii'`, `'utf8'`, `'utf16le'`, `'ucs2'`, `'base64'`, `'binary'`, and `'hex'`.
 
 ```js
 schemapack.setStringEncoding('ascii');
 ```
 
-### Add type aliases
+### Add type aliases:
 ```js
 schemapack.addTypeAlias('int', 'varuint');
 var builtSchema = schemapack.build([ 'string', 'int' ]);
