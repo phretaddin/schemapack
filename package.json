@@ -14,12 +14,14 @@
     "schema",
     "pack",
     "binary",
-    "encode",
-    "javascript",
-    "websockets",
+    "websocket",
     "serialize",
     "serialization",
-    "schemapack"
+    "schemapack",
+    "bytebuffer",
+    "buffer",
+    "arraybuffer",
+    "net"
   ],
   "author": "phretaddin",
   "license": "MIT",
