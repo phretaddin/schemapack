@@ -63,10 +63,12 @@ socket.on('chat', function(message) {
 
 ## Benchmarks
 
-These were performed via encoding/decoding the `player` object at the start of this page with `ascii` encoding. Please note that these results are slightly variable and that each library tested may do better with other object structures. I encourage you to run these benchmarks yourself with your own objects to see what is best for you.
+These were performed via encoding/decoding the `player` object at the start of this page. Please note that these results are slightly variable and that each library tested may do better with other object structures. I encourage you to run these benchmarks yourself with your own objects to see what is best for you.
 
-![Size](http://i.imgur.com/WW1lZdy.png "Size")
-![Speed](http://i.imgur.com/Uh43055.png "Speed")
+![Size](http://i.imgur.com/SZTKDCZ.png "Size")
+![Speed](http://i.imgur.com/5Orm9PY.png "Speed")
+
+Strings were excluded from the benchmark because they are difficult to properly measure. Most JavaScript engines store strings as trees that later have to later be flattened when sent over the wire so their true cost is deferred. Generally, SchemaPack will outperform the competition with large strings, whereas JSON and MsgPack will do better with smaller strings where simple concatenation outweighs the cost of creating a buffer.
 
 ## Installation
 
