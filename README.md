@@ -152,7 +152,7 @@ Just clone the repository and go to the directory and run `node index.js` to run
 
 ## Compatibility
 
-This library uses `Buffer` when in the `node.js` environment and the [buffer shim](https://github.com/feross/buffer#features) when in the browser.
+This library uses `Buffer` when in the `node.js` environment (always included) and the [buffer shim](https://github.com/feross/buffer#features) when in the browser (included with browserify/webpack).
 
 ## License
 
