@@ -34,6 +34,8 @@ socket.on('player-message', function(buffer) {
 
 In this example, the size of payload is only **19 bytes**. Using `JSON.stringify` instead causes the payload to be **109 bytes**.
 
+If you can't emit messages and can only send array buffers by themselves, add something like `__message: uint8` to the start of all your schemas/objects. On the receiver you can just read the first byte of the buffer to determine which message type it is.
+
 ## Motivation
 
 I was working on an app that used WebSockets to talk between client and server. Usually when doing this the client and server just send JSON back and forth. However, when receiving a message the receiver already knows what the format of the message is going to be. Example:
