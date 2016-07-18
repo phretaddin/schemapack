@@ -1,8 +1,10 @@
 'use strict';
 
-var schemapack = require('./schemapack');
-var msgpack = require("msgpack-lite");
-var ProtoBuf = require("protobufjs");
+var schemapack, msgpack, protobuf;
+
+schemapack = require('./schemapack');
+// msgpack = require("msgpack-lite"); // Uncomment if you `npm install msgpack-lite` to include in the benchmark
+// protobuf = require("protobufjs"); // Uncomment if you `npm install protobufjs` to include in the benchmark
 
 exports.largeObjectSchema = {
   damage: "int8",
@@ -160,32 +162,32 @@ exports.runBenchmark = function(schema, val) {
   console.log("Benchmark beginning..");
 
   var built = schemapack.build(schema);
-  var pbJS = ProtoBuf.loadJson(playerSchemaPB);
-  var pbMsg = pbJS.build("Message");
+  if (protobuf) { var pbJS = protobuf.loadJson(playerSchemaPB); }
+  if (protobuf) { var pbMsg = pbJS.build("Message"); }
 
   exports.benchmark('SchemaPack Encode', function() { built.encode(val); });
   exports.benchmark('JSON Encode', function() { JSON.stringify(val); });
-  exports.benchmark('MsgPack Encode', function() { msgpack.encode(val); });
-  exports.benchmark('ProtoBuf Encode Player', function() { pbMsg.encode(exports.player).toArrayBuffer(); });
+  if (msgpack) { exports.benchmark('MsgPack Encode', function() { msgpack.encode(val); }); }
+  if (protobuf) { exports.benchmark('ProtoBuf Encode Player', function() { pbMsg.encode(exports.player).toArrayBuffer(); }); }
 
   console.log("--------------------------------------");
 
   var schemapackEncoded = built.encode(val);
   var jsonEncoded = JSON.stringify(val);
-  var msgPackEncoded = msgpack.encode(val);
-  var protobufEncoded = pbMsg.encode(exports.player).toArrayBuffer();
+  if (msgpack) { var msgPackEncoded = msgpack.encode(val); }
+  if (protobuf) { var protobufEncoded = pbMsg.encode(exports.player).toArrayBuffer(); }
 
   exports.benchmark('SchemaPack Decode', function() { built.decode(schemapackEncoded); });
   exports.benchmark('JSON Decode', function() { JSON.parse(jsonEncoded); });
-  exports.benchmark('MsgPack Decode', function() { msgpack.decode(msgPackEncoded); });
-  exports.benchmark('ProtoBuf Decode Player', function() { pbMsg.decode(protobufEncoded); });
+  if (msgpack) { exports.benchmark('MsgPack Decode', function() { msgpack.decode(msgPackEncoded); }); }
+  if (protobuf) { exports.benchmark('ProtoBuf Decode Player', function() { pbMsg.decode(protobufEncoded); }); }
 
   console.log("--------------------------------------");
 
   console.log("SchemaPack Byte Count: " + schemapackEncoded.byteLength);
   console.log("JSON Byte Count: " + jsonEncoded.length);
-  console.log("MsgPack Byte Count: " + msgPackEncoded.length);
-  console.log("ProtoBuf Byte Count: " + protobufEncoded.byteLength);
+  if (msgpack) { console.log("MsgPack Byte Count: " + msgPackEncoded.length); }
+  if (protobuf) { console.log("ProtoBuf Byte Count: " + protobufEncoded.byteLength); }
 }
 
 // Used pbjs CLI to create this from .proto file for the player schema
