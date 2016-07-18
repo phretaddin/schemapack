@@ -33,21 +33,17 @@ exports.largeObject = {
 };
 
 exports.playerSchema = {
-  health: "uint16",
-  level: "uint8",
+  health: "varuint",
   jumping: "boolean",
-  position: [ "varuint" ],
-  name: "string",
-  stats: { str: 'uint8', agi: 'uint8', int: 'uint8' }
+  position: [ "float32" ],
+  attributes: { str: 'uint8', agi: 'uint8', int: 'uint8' }
 };
 
 exports.player = {
   health: 4000,
-  level: 50,
   jumping: false,
-  position: [ 20, 400, 300 ],
-  name: "John",
-  stats: { str: 87, agi: 42, int: 22 }
+  position: [ 322.572, 159.281, 23.775 ],
+  attributes: { str: 87, agi: 42, int: 22 }
 };
 
 exports.complexArraySchema = [
@@ -204,32 +200,22 @@ var playerSchemaPB = {
       "id": 1
     }, {
       "rule": "required",
-      "type": "int32",
-      "name": "level",
-      "id": 2
-    }, {
-      "rule": "required",
       "type": "bool",
       "name": "jumping",
-      "id": 3
+      "id": 2
     }, {
       "rule": "repeated",
-      "type": "int32",
+      "type": "float",
       "name": "position",
+      "id": 3
+    }, {
+      "rule": "required",
+      "type": "Attributes",
+      "name": "attributes",
       "id": 4
-    }, {
-      "rule": "required",
-      "type": "string",
-      "name": "name",
-      "id": 5
-    }, {
-      "rule": "required",
-      "type": "Stats",
-      "name": "stats",
-      "id": 6
     }],
     "messages": [{
-      "name": "Stats",
+      "name": "Attributes",
       "fields": [{
         "rule": "required",
         "type": "int32",
