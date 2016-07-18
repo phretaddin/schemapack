@@ -68,7 +68,7 @@ These were performed via encoding/decoding the `player` object at the start of t
 ![Size](http://i.imgur.com/SZTKDCZ.png "Size")
 ![Speed](http://i.imgur.com/5Orm9PY.png "Speed")
 
-Strings were excluded from the benchmark because they are difficult to properly measure. Most JavaScript engines store strings as trees that later have to later be flattened when sent over the wire so their true cost is deferred. SchemaPack will outperform the competition with large strings, whereas JSON and MsgPack will do better with smaller strings where simple concatenation outweighs the cost of creating a buffer.
+Strings were excluded from the benchmark because they are difficult to properly measure. Most JavaScript engines store strings as trees that later have to later be flattened when sent over the wire so their true cost is deferred. SchemaPack will outperform the competition with medium to long strings, whereas JSON and MsgPack will do better with small strings where simple concatenation outweighs the cost of creating a buffer.
 
 ## Installation
 
