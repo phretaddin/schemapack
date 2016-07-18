@@ -121,11 +121,11 @@ schemapack.setStringEncoding('ascii');
 
 ### Add type aliases
 ```js
-schemapack.addTypeAlias('int', 'int32');
-var builtSchema = schemapack.build({
-    'name': 'string',
-    'age': 'int'
-});
+schemapack.addTypeAlias('int', 'varuint');
+var builtSchema = schemapack.build([ 'string', 'int' ]);
+var buffer = builtSchema.encode([ 'dave', 1, 2, 3 ]);
+var object = builtSchema.decode(buffer);
+console.log(object); // [ 'dave', 1, 2, 3 ]
 ```
 
 ### Here is a table of the available data types for use in your schemas:
