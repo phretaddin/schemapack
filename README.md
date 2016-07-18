@@ -34,7 +34,7 @@ socket.on('player-message', function(buffer) {
 
 In this example, the size of payload is only **19 bytes**. Using `JSON.stringify` instead causes the payload to be **109 bytes**.
 
-If you can't emit messages and can only send array buffers by themselves, add something like `__message: uint8` to the start of all your schemas/objects. On the receiver you can just read the first byte of the buffer to determine what message it is.
+If you can't emit messages and can only send array buffers by themselves, add something like `__message: "uint8"` to the start of all your schemas/objects. On the receiver you can just read the first byte of the buffer to determine what message it is.
 
 ## Motivation
 
