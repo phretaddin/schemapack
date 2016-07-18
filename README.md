@@ -147,9 +147,8 @@ console.log(object); // [ 'dave', 1, 2, 3 ]
 
 Just clone the repository and go to the directory and run `node index.js` to run the test suite and benchmarks.
 
-To add MsgPack to the benchmarks, `npm install msgpack-lite` and uncomment line 6 in `tests.js`
-
-To add Protocol Buffers to the benchmarks, `npm install protobufjs` and uncomment line 7 in `tests.js`
+* To add MsgPack to the benchmarks, `npm install msgpack-lite` and uncomment line 6 in `tests.js`
+* To add Protocol Buffers to the benchmarks, `npm install protobufjs` and uncomment line 7 in `tests.js`
 
 ## Compatibility
 
