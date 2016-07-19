@@ -182,6 +182,8 @@ function encode(json, schema, schemaIsArray) {
 }
 
 function decode(buffer, schema, schemaIsArray) {
+  if (buffer instanceof ArrayBuffer) { buffer = Buffer.from(buffer); }
+  
   var refStack = [ schemaIsArray ? [] : {} ];
   var arrayLengthStack = [];
   
