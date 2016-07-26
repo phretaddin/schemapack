@@ -4,19 +4,11 @@
 'use strict';
 
 var Buffer = require('buffer').Buffer;
-var byteOffset = 0;
 var strEnc = 'utf8';
 var aliasTypes = { };
 
-function getEveryType() {
-  var constantKeys = Object.keys(constantByteCount);
-  var dynamicKeys = Object.keys(dynamicByteCount);
-
-  return constantKeys.concat(dynamicKeys);
-}
-
 function addTypeAlias(newTypeName, underlyingType) {
-  var everyType = getEveryType();
+  var everyType = Object.keys(readTypeDictStr);
   var reservedKeys = [ '__arr', '__arrend', '__obj', '__objend' ];
 
   if (reservedKeys.indexOf(newTypeName) > -1 || reservedKeys.indexOf(underlyingType) > -1) {
@@ -28,41 +20,33 @@ function addTypeAlias(newTypeName, underlyingType) {
   }
 }
 
-var setStringEncoding = function(stringEncoding) {
+function setStringEncoding(stringEncoding) {
   var requested = stringEncoding.trim().toLowerCase();
   var available = [ 'ascii', 'utf8', 'utf16le', 'ucs2', 'base64', 'binary', 'hex' ];
   if (available.indexOf(requested) > -1) { strEnc = requested; }
   else { throw new TypeError("String encoding not available"); }
-};
-
-function getVarUIntByteLength(value) {
-  return Math.floor(Math.log(value) / Math.log(128)) + 1;
 }
 
-function getVarIntByteLength(value) {
-  return getVarUIntByteLength((value << 1) ^ (value >> 31));
-}
-
-function writeVarUInt(buffer, value) {
+function writeVarUInt(value, wBuffer) {
   while (value > 127) {
-    buffer[byteOffset++] = (value & 127) | 128;
+    wBuffer[bag.byteOffset++] = (value & 127) | 128;
     value >>= 7;
   }
-  buffer[byteOffset++] = value & 127;
+  wBuffer[bag.byteOffset++] = value & 127;
 }
 
-function writeVarInt(buffer, value) {
-  writeVarUInt(buffer, (value << 1) ^ (value >> 31));
+function writeVarInt(value, wBuffer) {
+  writeVarUInt((value << 1) ^ (value >> 31), wBuffer);
 }
 
 function readVarUInt(buffer) {
-  var val = 0, i = 0, byte;
+  var val = 0, i = 0, b;
 
   do {
-    byte = buffer[byteOffset++];
-    val |= (byte & 127) << (7 * i);
+    b = buffer[bag.byteOffset++];
+    val |= (b & 127) << (7 * i);
     i++;
-  } while (byte & 128);
+  } while (b & 128);
 
   return val;
 }
@@ -72,237 +56,261 @@ function readVarInt(buffer) {
   return (val >>> 1) ^ -(val & 1);
 }
 
-function getStringByteLength(str) {
-  var s = str.length;
-
-  if (strEnc === "ascii") { return s; }
-  
-  for (var i = s - 1; i >= 0; i--) {
-    var code = str.charCodeAt(i);
-    if (code > 0x7f && code <= 0x7ff) { s++; }
-    else if (code > 0x7ff && code <= 0xffff) { s += 2; }
-    if (code >= 0xDC00 && code <= 0xDFFF) { i--; } // Trail surrogate
-  }
-  
-  return s;
+function writeString(val, wBuffer) {
+  var len = Buffer.byteLength(val, strEnc);
+  writeVarUInt(len, wBuffer);
+  bag.byteOffset += wBuffer.write(val, bag.byteOffset, len, strEnc);
 }
 
-function writeString(buffer, val) {
-  var len = getStringByteLength(val);
-  writeVarUInt(buffer, len);
-  byteOffset += buffer.write(val, byteOffset, len, strEnc);
-}
-
-function readString(buffer, strLen) {
-  var str = buffer.toString(strEnc, byteOffset, byteOffset + strLen);
-  byteOffset += strLen;
+function readString(buffer) {
+  var len = readVarUInt(buffer);
+  var str = buffer.toString(strEnc, bag.byteOffset, bag.byteOffset + len);
+  bag.byteOffset += len;
   return str;
 }
 
 function peek(arr) { return arr[arr.length - 1]; }
 
-function getArrayByteCount(arr, key, schema, i) {
-  var len = arr.length;
-  var byteCount = getVarUIntByteLength(len);
-  var repeatCount = len - key;
+var readTypeDictStr = {
+  "boolean": "!!buffer.readUInt8(bag.byteOffset, true); bag.byteOffset += 1;",
+  "int8": "buffer.readInt8(bag.byteOffset, true); bag.byteOffset += 1;",
+  "uint8": "buffer.readUInt8(bag.byteOffset, true); bag.byteOffset += 1;",
+  "int16": "buffer.readInt16BE(bag.byteOffset, true); bag.byteOffset += 2;",
+  "uint16": "buffer.readUInt16BE(bag.byteOffset, true); bag.byteOffset += 2;",
+  "int32": "buffer.readInt32BE(bag.byteOffset, true); bag.byteOffset += 4;",
+  "uint32": "buffer.readUInt32BE(bag.byteOffset, true); bag.byteOffset += 4;",
+  "float32": "buffer.readFloatBE(bag.byteOffset, true); bag.byteOffset += 4;",
+  "float64": "buffer.readDoubleBE(bag.byteOffset, true); bag.byteOffset += 8;",
+  "string": "bag.readString(buffer);",
+  "varuint": "bag.readVarUInt(buffer);",
+  "varint": "bag.readVarInt(buffer);"
+};
 
-  if (repeatCount > 0) {
-    var repeatedDataType = schema[i - 1];
+function getWriteTypeDictStr(dataType, valStr) {
+  switch (dataType) {
+    case "boolean": return "bag.byteOffset = wBuffer.writeUInt8(" + valStr + " ? 1 : 0, bag.byteOffset, true);";
+    case "int8": return "bag.byteOffset = wBuffer.writeInt8(" + valStr + ", bag.byteOffset, true);";
+    case "uint8": return "bag.byteOffset = wBuffer.writeUInt8(" + valStr + ", bag.byteOffset, true);";
+    case "int16": return "bag.byteOffset = wBuffer.writeInt16BE(" + valStr + ", bag.byteOffset, true);";
+    case "uint16": return "bag.byteOffset = wBuffer.writeUInt16BE(" + valStr + ", bag.byteOffset, true);";
+    case "int32": return "bag.byteOffset = wBuffer.writeInt32BE(" + valStr + ", bag.byteOffset, true);";
+    case "uint32": return "bag.byteOffset = wBuffer.writeUInt32BE(" + valStr + ", bag.byteOffset, true);";
+    case "float32": return "bag.byteOffset = wBuffer.writeFloatBE(" + valStr + ", bag.byteOffset, true);";
+    case "float64": return "bag.byteOffset = wBuffer.writeDoubleBE(" + valStr + ", bag.byteOffset, true);";
+    case "string": return "bag.writeString(" + valStr + ", wBuffer);";
+    case "varuint": return "bag.writeVarUInt(" + valStr + ", wBuffer);";
+    case "varint": return "bag.writeVarInt(" + valStr + ", wBuffer);";
+  }
+}
 
-    switch (repeatedDataType) {
-      case "varuint":
-      case "varint":
-      case "string": { for (var j = key; j < len; j++) { byteCount += dynamicByteCount[repeatedDataType](arr[j]); } break; }
-      default: byteCount += (constantByteCount[repeatedDataType] * repeatCount); break;
-    }
+var constantByteCounts = { "boolean": 1, "int8": 1, "uint8": 1, "int16": 2, "uint16": 2, "int32": 4, "uint32": 4, "float32": 4, "float64": 8 };
+
+var dynamicByteCounts = {
+  "string": function(val) { var len = Buffer.byteLength(val, strEnc); return getVarUIntByteLength(len) + len; },
+  "varuint": function(val) { return getVarUIntByteLength(val); },
+  "varint": function(val) { return getVarIntByteLength(val); }
+};
+
+function getVarUIntByteLength(val) {
+	if (val <= 0) { return 1; }
+	return Math.floor(Math.log(val) / Math.log(128)) + 1;
+}
+
+function getVarIntByteLength(value) {
+  return getVarUIntByteLength((value << 1) ^ (value >> 31));
+}
+
+var bag = {};
+bag.getConstantRABC = getConstantRABC; // Repeated array byte count
+bag.getDynamicRABC = getDynamicRABC;
+bag.dynamicByteCounts = dynamicByteCounts;
+bag.readVarUInt = readVarUInt;
+bag.readVarInt = readVarInt;
+bag.writeVarUInt = writeVarUInt;
+bag.writeVarInt = writeVarInt;
+bag.readString = readString;
+bag.writeString = writeString;
+bag.byteOffset = 0;
+
+function getConstantRABC(arrLen, arrSchemaLength, byteCount, rootArray) {
+  var bytes = rootArray ? 0 : getVarUIntByteLength(arrLen);
+  
+  return bytes + byteCount * (arrLen - arrSchemaLength);
+}
+
+function getDynamicRABC(arr, arrSchemaLength, repeatedDataType, rootArray) {
+  var byteCount = rootArray ? 0 : getVarUIntByteLength(arr.length);
+  var dynamicType = dynamicByteCounts[repeatedDataType];
+
+  for (var j = arrSchemaLength; j < arr.length; j++) { 
+    byteCount += dynamicType(arr[j]);
   }
 
   return byteCount;
 }
 
-function writeArray(arr, key, repeatedDataType, buffer) {
-  var repeatCount = arr.length - key;
+function endEncodeArray(val, newID) {
+  return "for (var j = " + val.length + "; j < " + "ref" + newID + ".length" + "; j++) { " + getWriteTypeDictStr(peek(val), "ref" + newID + "[j]") + "}";
+}
 
-  if (repeatCount > 0) {
-    for (var j = key; j < arr.length; j++) {
-      writeTypeDict[repeatedDataType](buffer, arr[j]);
-    }
+function startEncodeArray(newID, parentID, prop) {
+  return "var ref" + newID + "=ref" + parentID + "[" + prop + "];";
+}
+
+function encodeArrayLength(newID) {
+  return "bag.writeVarUInt(ref" + newID + ".length,wBuffer);";
+}
+
+function startDecodeArray(newID, parentID, prop, arrLenStr) { 
+  var str = "var ref" + newID + "=[];";
+  str += "ref" + parentID + "[" + prop + "]=ref" + newID + ";";
+  str += "var " + arrLenStr + "=bag.readVarUInt(buffer);";
+  return str;
+}
+
+function endDecodeArray(val, newID, arrLenStr) {
+  return "for (var k = " + val.length + "; k < " + arrLenStr + "; k++) { ref" + newID + "[k]=" + readTypeDictStr[peek(val)] + "}";
+}
+
+function startEncodeObject(newID, parentID, prop) {
+  return "var ref" + newID + "=ref" + parentID + "[" + prop + "];";
+}
+
+function startDecodeObject(newID, parentID, prop) {
+  var str = "var ref" + newID + "={};";
+  str += "ref" + parentID + "[" + prop + "]=ref" + newID + ";";
+  return str;
+}
+
+function readArrayToEnd(dataType) {
+  return "for (var i = ref1.length; bag.byteOffset < buffer.length; i++) { ref1[i] = " + readTypeDictStr[dataType] + "}";
+}
+
+function encodeValue(dataType, x, prop) {
+  return getWriteTypeDictStr(dataType, "ref" + x + "[" + prop + "]");
+}
+
+function decodeValue(dataType, x, prop) {
+  return "ref" + x + "[" + prop + "]=" + readTypeDictStr[dataType];
+}
+
+function getArrayByteCount(dataType, refArr, schemaArr, rootArray) {
+  if (constantByteCounts.hasOwnProperty(dataType)) {
+    return "byteC+=bag.getConstantRABC(" + refArr + ".length," + schemaArr.length + "," +  constantByteCounts[dataType] + "," + rootArray + ");";
+  } else {
+    return "byteC+=bag.getDynamicRABC(" + refArr + "," + schemaArr.length + ",'" + dataType + "'," + rootArray + ");";
   }
 }
 
-function readArray(len, key, val, repeatedDataType, buffer) {
-  for (var j = key; j < len; j++) {
-    readTypeDict[repeatedDataType](buffer, j, val);
-  }
+function surroundByteCountStr(byteCountStr, byteCount) {
+  return ("var byteC=" + byteCount + ";").concat(byteCountStr, "var wBuffer=Buffer.allocUnsafe(byteC);");
 }
 
-function calculateByteCount(obj, schema) {
-  var refStack = [ obj ];
-  var byteCount = 0;
-
-  for (var i = 0; i < schema.length; i += 2) {
-    var key = schema[i];
-    var dataType = schema[i + 1];
-
-    switch (dataType) {
-      case "__arrend": { byteCount += getArrayByteCount(refStack.pop(), key, schema, i); break; }
-      case "__obj": { refStack.push(peek(refStack)[key]); break; }
-      case "__arr": { refStack.push(peek(refStack)[key]); break; }
-      case "string":
-      case "varuint":
-      case "varint": { byteCount += dynamicByteCount[dataType](peek(refStack)[key]); break; }
-      case "__objend": { refStack.pop(); break; }
-      default: { byteCount += constantByteCount[dataType]; break; }
-    }
-  }
-
-  return byteCount;  
+function getDynamicVarByteCount(dataType, saveID, prop) {
+  return "byteC+=bag.dynamicByteCounts['" + dataType + "'](ref" + saveID + "[" + prop + "]" + ");";
 }
 
-function encode(json, schema, schemaIsArray) {
-  var obj = schemaIsArray ? [json] : json;
-  var buffer = Buffer.allocUnsafe(calculateByteCount(obj, schema));
-  var refStack = [ obj ];
-  byteOffset = 0;
+function getCompiledSchema(schema, schemaIsArray) {
+  var everyType = Object.keys(readTypeDictStr);
+  var strEncodeFunction = "bag.byteOffset=0;";
+  var strDecodeFunction = "var ref1=root; bag.byteOffset=0;";
+  var strDynamicByteCount = "";
+  var strEncodeRefDecs = "var ref1=json;";
+  var incID = 0;
+  var cByteCount = 0;
 
-  for (var i = 0; i < schema.length; i += 2) {
-    var key = schema[i];
-    var dataType = schema[i + 1];
-    var val = peek(refStack)[key];
-
-    switch (dataType) {
-      case "__arrend": { writeArray(refStack.pop(), key, schema[i - 1], buffer); break; }
-      case "__arr": { writeVarUInt(buffer, val.length); refStack.push(val); break; }
-      case "__obj": { refStack.push(val); break; }
-      case "__objend": { refStack.pop(); break; }
-      default: { writeTypeDict[dataType](buffer, val); break; }
-    }
-  }
-  return buffer;
-}
-
-function decode(buffer, schema, schemaIsArray) {
-  if (buffer instanceof ArrayBuffer) { buffer = Buffer.from(buffer); }
-  
-  var refStack = [ schemaIsArray ? [] : {} ];
-  var arrayLengthStack = [];
-  
-  byteOffset = 0;
-
-  for (var i = 0; i < schema.length; i += 2) {
-    var key = schema[i];
-    var dataType = schema[i + 1];
-    var val = peek(refStack);
-
-    switch (dataType) {
-      case "__arrend": { readArray(arrayLengthStack.pop(), key, val, schema[i - 1], buffer); refStack.pop(); break; }
-      case "__arr": { arrayLengthStack.push(readVarUInt(buffer)); var arr = []; val[key] = arr; refStack.push(arr); break; }
-      case "__obj": { var obj = {}; val[key] = obj; refStack.push(obj); break; }
-      case "__objend": { refStack.pop(); break; }
-      default: { readTypeDict[dataType](buffer, key, val); }
-    }
-  }
-
-  return schemaIsArray ? peek(refStack)[0] : peek(refStack);
-}
-
-var constantByteCount = {
-  "boolean": 1,
-  "int8": 1,
-  "uint8": 1,
-  "int16": 2,
-  "uint16": 2,
-  "int32": 4,
-  "uint32": 4,
-  "float32": 4,
-  "float64": 8,
-};
-
-var dynamicByteCount = {
-  "string": function(val) { var len = getStringByteLength(val); return getVarUIntByteLength(len) + len; },
-  "varuint": function(val) { return getVarUIntByteLength(val); },
-  "varint": function(val) { return getVarIntByteLength(val); }
-};
-
-var readTypeDict = {
-  "boolean": function(buffer, key, decObj) { decObj[key] = Boolean(buffer.readUInt8(byteOffset, true)); byteOffset += 1; },
-  "int8": function(buffer, key, decObj) { decObj[key] = buffer.readInt8(byteOffset, true); byteOffset += 1; },
-  "uint8": function(buffer, key, decObj) { decObj[key] = buffer.readUInt8(byteOffset, true); byteOffset += 1; },
-  "int16": function(buffer, key, decObj) { decObj[key] = buffer.readInt16BE(byteOffset, true); byteOffset += 2; },
-  "uint16": function(buffer, key, decObj) { decObj[key] = buffer.readUInt16BE(byteOffset, true); byteOffset += 2; },
-  "int32": function(buffer, key, decObj) { decObj[key] = buffer.readInt32BE(byteOffset, true); byteOffset += 4; },
-  "uint32": function(buffer, key, decObj) { decObj[key] = buffer.readUInt32BE(byteOffset, true); byteOffset += 4; },
-  "float32": function(buffer, key, decObj) { decObj[key] = buffer.readFloatBE(byteOffset, true); byteOffset += 4; },
-  "float64": function(buffer, key, decObj) { decObj[key] = buffer.readDoubleBE(byteOffset, true); byteOffset += 8; },
-  "string": function(buffer, key, decObj) { decObj[key] = readString(buffer, readVarUInt(buffer)); },
-  "varuint": function(buffer, key, decObj) { decObj[key] = readVarUInt(buffer); },
-  "varint": function(buffer, key, decObj) { decObj[key] = readVarInt(buffer); }
-};
-
-var writeTypeDict = {
-  "boolean": function(buffer, val) { buffer.writeUInt8(val ? 1 : 0, byteOffset, true); byteOffset += 1; },
-  "int8": function(buffer, val) { buffer.writeInt8(val, byteOffset, true); byteOffset += 1; },
-  "uint8": function(buffer, val) { buffer.writeUInt8(val, byteOffset, true); byteOffset += 1; },
-  "int16": function(buffer, val) { buffer.writeInt16BE(val, byteOffset, true); byteOffset += 2; },
-  "uint16": function(buffer, val) { buffer.writeUInt16BE(val, byteOffset, true); byteOffset += 2; },
-  "int32": function(buffer, val) { buffer.writeInt32BE(val, byteOffset, true); byteOffset += 4; },
-  "uint32": function(buffer, val) { buffer.writeUInt32BE(val, byteOffset, true); byteOffset += 4; },
-  "float32": function(buffer, val) { buffer.writeFloatBE(val, byteOffset, true); byteOffset += 4; },
-  "float64": function(buffer, val) { buffer.writeDoubleBE(val, byteOffset, true); byteOffset += 8; },
-  "string": function(buffer, val) { writeString(buffer, val); },
-  "varuint": function(buffer, val) { writeVarUInt(buffer, val); },
-  "varint": function(buffer, val) { writeVarInt(buffer, val); }
-};
-
-function getFlattened(schema, schemaIsArray) {
-  var everyType = getEveryType();
-
-  function flatten(json, acc, inArray) {
+  function compileSchema(json, inArray) {
+    incID++;
     var keys = Object.keys(json);
     keys.sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+
+    var saveID = incID;
 
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i];
       var val = json[key];
-
+      
       if (inArray) { key = +key; }
 
+      var prop = typeof key === "number" ? key : "'" + key + "'";
+
       if (val.constructor === Array) {
-        flattened.push(key, '__arr');
-        flatten(val, [key, '__arr'], true);
-        flattened.push(val.length, '__arrend');
+        var newID = incID + 1;
+        var parentID = saveID;
+        var arrLenStr = "arrLen" + incID;
+
+        strEncodeRefDecs += startEncodeArray(newID, parentID, prop);
+        strEncodeFunction += encodeArrayLength(newID);
+
+        strDecodeFunction += startDecodeArray(newID, parentID, prop, arrLenStr);
+
+        var dataType = peek(val);
+
+        strDynamicByteCount += getArrayByteCount(dataType, "ref" + newID, val, false);
+        
+        compileSchema(val, true);
+
+        strEncodeFunction += endEncodeArray(val, newID);
+        strDecodeFunction += endDecodeArray(val, newID, arrLenStr);
       } else if (typeof val === 'object') {
-        flattened.push(key, '__obj');
-        flatten(val, [key, '__obj']);
-        flattened.push(key, '__objend');
+        var newID = incID + 1;
+        var parentID = saveID;
+
+        strEncodeRefDecs += startEncodeObject(newID, parentID, prop);
+        strDecodeFunction += startDecodeObject(newID, parentID, prop);
+
+        compileSchema(val, false);
       } else {
         var dataType = val.trim().toLowerCase();
-        if (aliasTypes.hasOwnProperty(dataType)) { dataType = aliasTypes[dataType]; }
-        if (everyType.indexOf(dataType) > -1) { flattened.push(key, dataType); }
-        else { throw new TypeError("Invalid data type in schema."); }
+        if (aliasTypes.hasOwnProperty(dataType)) { json[key] = aliasTypes[dataType]; dataType = aliasTypes[dataType]; }
+        if (everyType.indexOf(dataType) > -1) {
+          if (constantByteCounts.hasOwnProperty(dataType)) { cByteCount += constantByteCounts[dataType]; }
+          else { strDynamicByteCount += getDynamicVarByteCount(dataType, saveID, prop); }
+
+          strEncodeFunction += encodeValue(dataType, saveID, prop);
+          strDecodeFunction += decodeValue(dataType, saveID, prop);
+        } else { 
+          throw new TypeError("Invalid data type in schema.");
+        }
       }
     }
   }
-  var flattened = [];
+
+  compileSchema(schema, schemaIsArray);
 
   if (schemaIsArray) {
-    flattened.push(0, '__arr');
-    flatten(schema, [], true);
-    flattened.push(schema.length, '__arrend');
-  } else {
-    flatten(schema, [], false);
+    var repeatedDataType = peek(schema);
+
+    strDynamicByteCount += getArrayByteCount(repeatedDataType, "json", schema, true);
+    strEncodeFunction += endEncodeArray(schema, 1);
+    strDecodeFunction += readArrayToEnd(repeatedDataType);
   }
-  
-  return flattened;
+
+  strDynamicByteCount = surroundByteCountStr(strDynamicByteCount, cByteCount);
+  strEncodeFunction = strEncodeRefDecs.concat(strDynamicByteCount, strEncodeFunction, "return wBuffer;");
+  strDecodeFunction = strDecodeFunction.concat('return root;');
+
+  var compiledEncode = new Function('json', 'bag', strEncodeFunction);
+  var compiledDecode = new Function('root', 'buffer', 'bag', strDecodeFunction);
+
+  return [ compiledEncode, compiledDecode ];
 }
 
 function build(schema) { 
   var schemaIsArray = schema.constructor === Array;
-  var builtSchema = getFlattened(schema, schemaIsArray);
-  
+  var builtSchema = getCompiledSchema(schema, schemaIsArray);
+
+  var compiledEncode = builtSchema[0];
+  var compiledDecode = builtSchema[1];
+
   return {
-    "encode": function(json) { return encode(json, builtSchema, schemaIsArray); },
-    "decode": function(buffer) { return decode(buffer, builtSchema, schemaIsArray); }
+    "encode": function(json) { 
+      return compiledEncode(json, bag);
+    },
+    "decode": function(buffer) { 
+      var buf = buffer instanceof ArrayBuffer ? Buffer.from(buffer) : buffer;
+      return compiledDecode(schemaIsArray ? [] : {}, buf, bag);
+    }
   }
 }
 
