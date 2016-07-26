@@ -1,6 +1,8 @@
 # schemapack
 
-Efficiently encode your JavaScript objects in to compact byte buffers and then decode them back in to JavaScript objects on the receiver. Integrates very well with WebSockets.
+The fastest and smallest JavaScript object serialization library.
+Efficiently encode your objects in to compact byte buffers and then decode them back in to objects on the receiver.
+Integrates very well with WebSockets.
 
 ## Example
 
@@ -9,7 +11,7 @@ Efficiently encode your JavaScript objects in to compact byte buffers and then d
 var playerSchema = schemapack.build({
     health: "varuint",
     jumping: "boolean",
-    position: [ "float32" ],
+    position: [ "int16" ],
     attributes: { str: 'uint8', agi: 'uint8', int: 'uint8' }
 });
 
@@ -17,14 +19,12 @@ var playerSchema = schemapack.build({
 var player = {
     health: 4000,
     jumping: false,
-    position: [ 322.572, 159.281, 23.775 ],
+    position: [ -540, 343, 1201 ],
     attributes: { str: 87, agi: 42, int: 22 }
 };
 
 var buffer = playerSchema.encode(player);
-// Create a socket connection to server
-socket.binaryType = 'arraybuffer';
-socket.emit('player-message', buffer);
+socket.emit('player-message', buffer); // Use some JavaScript WebSocket library to get this socket variable.
 
 // On the server:
 socket.on('player-message', function(buffer) { 
@@ -32,9 +32,9 @@ socket.on('player-message', function(buffer) {
 }
 ```
 
-In this example, the size of payload is only **19 bytes**. Using `JSON.stringify` instead causes the payload to be **109 bytes**.
+In this example, the size of payload is only **13 bytes**. Using `JSON.stringify` instead causes the payload to be **100 bytes**.
 
-If you can't emit messages and can only send array buffers by themselves, add something like `__message: "uint8"` to the start of all your schemas/objects. On the receiver you can just read the first byte of the buffer to determine what message it is.
+If you can't emit message strings and can only send array buffers by themselves, add something like `__message: "uint8"` to the start of all your schemas/objects. On the receiver you can just read the first byte of the buffer to determine what message it is.
 
 ## Motivation
 
@@ -59,27 +59,46 @@ socket.on('chat', function(message) {
 
 ### Why I didn't just use an existing schema packing library:
 * *Too complicated:* I didn't want to have to learn a schema language and format a schema for every object.
-* *Too slow:* I benchmarked a couple of other popular libraries and they were often 10x slower than using the native `JSON.stringify` and `JSON.parse`. This library is often faster than even those native methods.
+* *Too slow:* I benchmarked a couple of other popular libraries and they were often 10x slower than using the native `JSON.stringify` and `JSON.parse`. This library is faster than even those native methods.
 * *Too large:* I didn't want to use a behemoth library with tens of thousands of lines of code and many dependencies for something so simple. This library is 300 lines of code with no dependencies.
 * *Too much overhead:* Some of the other libraries that allow you to specify a schema still waste a lot of bytes on padding/keys/etc. I desgined this library to not waste a single byte on anything that isn't your data.
 
 ## Benchmarks
 
-These were performed via encoding/decoding the `player` object at the start of this page. Please note that these results are slightly variable and that each library tested may do better with other object structures. I encourage you to run these benchmarks yourself with your own objects to see what is best for you.
+These were performed via encoding/decoding the `player` object at the start of this page on my computer. Feel free to run the benchmarks yourself by executing `node index.js`.
 
-![Size](http://i.imgur.com/SZTKDCZ.png "Size")
-![Speed](http://i.imgur.com/5Orm9PY.png "Speed")
+![Size](http://i.imgur.com/TcTREhP.png "Size")
+![Speed](http://i.imgur.com/2755F3g.png "Speed")
 
-Strings were excluded from the benchmark because they are difficult to properly measure. Most JavaScript engines store strings as trees that later have to later be flattened when sent over the wire so their true cost is deferred. SchemaPack will outperform the competition with medium to long strings, whereas JSON and MsgPack will do better with small strings where simple concatenation outweighs the cost of creating a buffer.
+In addition, SchemaPack really shines when used with large objects with a lot of nesting and long arrays compared to the competition. I encourage you to run the benchmarks with your own objects to see what works best for you.
+
+## Library Size
+
+**2.07 KB** after minify/gzip without buffer shim.
+
+**8.27 KB** after minify/gzip with buffer shim.
 
 ## Installation
 
-On the server, you can just copy `schemapack.js` in to your project folder and `require` it. 
-
-On the client, use webpack/browserify to automatically include the prerequisite `buffer` shim.
+On the server, you can just copy `schemapack.js` in to your project folder and `require` it. (Remove the `./` if installed through npm)
 
 ```js
 var schemapack = require('./schemapack');
+```
+
+On the client, use webpack/browserify to automatically include the prerequisite `buffer` shim if you're not using it already.
+
+For example, if you had a file `index.js` with the following:
+
+```js
+var schemapack = require('./schemapack');
+// More code here using schemapack
+```
+
+You can add the `Buffer` shim by typing `browserify index.js > bundle.js` and then including that file in your HTML.
+
+```html
+<script type="text/javascript" src="bundle.js"></script>
 ```
 
 ## API
@@ -140,9 +159,9 @@ console.log(object); // [ 'dave', 1, 2, 3 ]
 | int32     |         | 4                                                                                                                                                             | -2,147,483,648 to 2,147,483,647 |
 | uint32    |         | 4                                                                                                                                                             | 0 to 4,294,967,295              |
 | float32   |         | 4                                                                                                                                                             | 3.4E +/- 38 (7 digits)          |
-| float64   |         | 8                                                                                                                                                             | 1.7 +/- 308 (15 digits)         |
+| float64   |         | 8                                                                                                                                                             | 1.7E +/- 308 (15 digits)         |
 | string    |         | varuint length prefix followed by bytes of each character                                                                                               | Any string                      |
-| varuint   |         | 1 byte when 0 to 127<br /> 2 bytes when 128 to 16,383<br /> 3 bytes when 16,384 to 2,097,151<br /> 4 bytes when 2,097,152 to 268,435,455<br /> etc.           | 0 to 9,007,199,254,740,991      |
+| varuint   |         | 1 byte when 0 to 127<br /> 2 bytes when 128 to 16,383<br /> 3 bytes when 16,384 to 2,097,151<br /> 4 bytes when 2,097,152 to 268,435,455<br /> etc.           | 0 to 2,147,483,647      |
 | varint    |         | 1 byte when -64 to 63<br /> 2 bytes when -8,192 to 8,191<br /> 3 bytes when -1,048,576 to 1,048,575<br /> 4 bytes when -134,217,728 to 134,217,727<br /> etc. | -1,073,741,824 to 1,073,741,823        |
 
 ## Tests
