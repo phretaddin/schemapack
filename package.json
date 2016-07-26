@@ -1,7 +1,7 @@
 {
   "name": "schemapack",
-  "version": "1.0.0",
-  "description": "Efficiently encode your JavaScript objects in to compact byte buffers and then decode them back in to JavaScript objects on the receiver. Integrates very well with WebSockets.",
+  "version": "1.1.0",
+  "description": "The fastest and smallest JavaScript object serialization library. Efficiently encode your objects in to compact byte buffers and then decode them back in to objects on the receiver. Integrates very well with WebSockets.",
   "main": "schemapack.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
