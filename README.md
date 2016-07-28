@@ -147,6 +147,14 @@ var object = builtSchema.decode(buffer);
 console.log(object); // [ 'dave', 1, 2, 3 ]
 ```
 
+### Make single item schemas:
+```js
+var builtSchema = schemapack.build("varint");
+var buffer = builtSchema.encode(-350);
+var item = builtSchema.decode(buffer);
+console.log(item); // -350
+```
+
 ### Here is a table of the available data types for use in your schemas:
 
 | Type Name | Aliases | Bytes                                                                                                                                                         | Range of Values                 |
