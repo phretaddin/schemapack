@@ -112,8 +112,8 @@ var dynamicByteCounts = {
 };
 
 function getVarUIntByteLength(val) {
-	if (val <= 0) { return 1; }
-	return Math.floor(Math.log(val) / Math.log(128)) + 1;
+  if (val <= 0) { return 1; }
+  return Math.floor(Math.log(val) / Math.log(128)) + 1;
 }
 
 function getVarIntByteLength(value) {
@@ -187,11 +187,13 @@ function readArrayToEnd(dataType) {
 }
 
 function encodeValue(dataType, x, prop) {
-  return getWriteTypeDictStr(dataType, "ref" + x + "[" + prop + "]");
+  var key = prop !== undefined ? "[" + prop + "]" : "";
+  return getWriteTypeDictStr(dataType, "ref" + x + key);
 }
 
 function decodeValue(dataType, x, prop) {
-  return "ref" + x + "[" + prop + "]=" + readTypeDictStr[dataType];
+  var key = prop !== undefined ? "[" + prop + "]" : "";
+  return "ref" + x + key + "=" + readTypeDictStr[dataType];
 }
 
 function getArrayByteCount(dataType, refArr, schemaArr, rootArray) {
@@ -207,13 +209,21 @@ function surroundByteCountStr(byteCountStr, byteCount) {
 }
 
 function getDynamicVarByteCount(dataType, saveID, prop) {
-  return "byteC+=bag.dynamicByteCounts['" + dataType + "'](ref" + saveID + "[" + prop + "]" + ");";
+  var key = prop !== undefined ? "[" + prop + "]" : "";
+  return "byteC+=bag.dynamicByteCounts['" + dataType + "'](ref" + saveID + key + ");";
+}
+
+function getDataType(val) {
+  var everyType = Object.keys(readTypeDictStr);
+  var dataType = val.trim().toLowerCase();
+  if (aliasTypes.hasOwnProperty(dataType)) { dataType = aliasTypes[dataType]; }
+  if (everyType.indexOf(dataType) === -1) { throw new TypeError("Invalid data type for schema."); }
+  return dataType;
 }
 
 function getCompiledSchema(schema, schemaIsArray) {
-  var everyType = Object.keys(readTypeDictStr);
   var strEncodeFunction = "bag.byteOffset=0;";
-  var strDecodeFunction = "var ref1=root; bag.byteOffset=0;";
+  var strDecodeFunction = "var ref1=schemaIsArray ? [] : {}; bag.byteOffset=0;";
   var strDynamicByteCount = "";
   var strEncodeRefDecs = "var ref1=json;";
   var incID = 0;
@@ -261,37 +271,41 @@ function getCompiledSchema(schema, schemaIsArray) {
 
         compileSchema(val, false);
       } else {
-        var dataType = val.trim().toLowerCase();
-        if (aliasTypes.hasOwnProperty(dataType)) { json[key] = aliasTypes[dataType]; dataType = aliasTypes[dataType]; }
-        if (everyType.indexOf(dataType) > -1) {
-          if (constantByteCounts.hasOwnProperty(dataType)) { cByteCount += constantByteCounts[dataType]; }
-          else { strDynamicByteCount += getDynamicVarByteCount(dataType, saveID, prop); }
+        var dataType = getDataType(val);
+        json[key] = dataType;
 
-          strEncodeFunction += encodeValue(dataType, saveID, prop);
-          strDecodeFunction += decodeValue(dataType, saveID, prop);
-        } else { 
-          throw new TypeError("Invalid data type in schema.");
-        }
+        if (constantByteCounts.hasOwnProperty(dataType)) { cByteCount += constantByteCounts[dataType]; }
+        else { strDynamicByteCount += getDynamicVarByteCount(dataType, saveID, prop); }
+
+        strEncodeFunction += encodeValue(dataType, saveID, prop);
+        strDecodeFunction += decodeValue(dataType, saveID, prop);
       }
     }
   }
 
-  compileSchema(schema, schemaIsArray);
+  if (typeof schema === "string") { // Single item schema
+    var dt = getDataType(schema);
+    var dtBytes = constantByteCounts.hasOwnProperty(dt) ? constantByteCounts[dt] : "bag.dynamicByteCounts['" + dt + "'](json)";
+    strEncodeFunction = "bag.byteOffset=0; var wBuffer=Buffer.allocUnsafe(" + dtBytes + ");" + getWriteTypeDictStr(dt, "json") + "return wBuffer;";
+    strDecodeFunction = "bag.byteOffset=0;" + "var item=" + readTypeDictStr[dt] + "return item;";
+  } else {
+    compileSchema(schema, schemaIsArray);
 
-  if (schemaIsArray) {
-    var repeatedDataType = peek(schema);
+    if (schemaIsArray) {
+      var repeatedDataType = peek(schema);
 
-    strDynamicByteCount += getArrayByteCount(repeatedDataType, "json", schema, true);
-    strEncodeFunction += endEncodeArray(schema, 1);
-    strDecodeFunction += readArrayToEnd(repeatedDataType);
+      strDynamicByteCount += getArrayByteCount(repeatedDataType, "json", schema, true);
+      strEncodeFunction += endEncodeArray(schema, 1);
+      strDecodeFunction += readArrayToEnd(repeatedDataType);
+    }
+
+    strDynamicByteCount = surroundByteCountStr(strDynamicByteCount, cByteCount);
+    strEncodeFunction = strEncodeRefDecs.concat(strDynamicByteCount, strEncodeFunction, "return wBuffer;");
+    strDecodeFunction = strDecodeFunction.concat('return ref1;');
   }
 
-  strDynamicByteCount = surroundByteCountStr(strDynamicByteCount, cByteCount);
-  strEncodeFunction = strEncodeRefDecs.concat(strDynamicByteCount, strEncodeFunction, "return wBuffer;");
-  strDecodeFunction = strDecodeFunction.concat('return root;');
-
   var compiledEncode = new Function('json', 'bag', strEncodeFunction);
-  var compiledDecode = new Function('root', 'buffer', 'bag', strDecodeFunction);
+  var compiledDecode = new Function('schemaIsArray', 'buffer', 'bag', strDecodeFunction);
 
   return [ compiledEncode, compiledDecode ];
 }
@@ -309,7 +323,7 @@ function build(schema) {
     },
     "decode": function(buffer) { 
       var buf = buffer instanceof ArrayBuffer ? Buffer.from(buffer) : buffer;
-      return compiledDecode(schemaIsArray ? [] : {}, buf, bag);
+      return compiledDecode(schemaIsArray, buf, bag);
     }
   }
 }
