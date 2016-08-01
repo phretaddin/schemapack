@@ -1,5 +1,5 @@
 module.exports.schema = [
-  "float32",
+  "float64",
   "boolean",
   "int8",
   "int16",
