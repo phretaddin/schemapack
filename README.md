@@ -73,7 +73,7 @@ socket.on('chat', function(message) {
 
 ## Benchmarks
 
-These were performed via encoding/decoding the `player` object at the start of this page with an i7 3770k on Windows 7. Feel free to run the benchmarks yourself.
+These were performed via encoding/decoding the `player` object at the start of this page with an i7 3770k on Windows 7. Feel free to run the benchmarks yourself. (Now using benchmark.js)
 
 ![Size](http://i.imgur.com/TcTREhP.png "Size")
 ![Speed](http://i.imgur.com/2755F3g.png "Speed")
@@ -220,14 +220,15 @@ console.log(item); // -350
 
 ## Tests
 
-Just clone the repository and go to the directory and run `node index.js` to run the test suite and benchmarks.
+Just clone the repository, run `npm install` in the directory to get the testing framework (it also grabs other libraries for the benchmarks)
 
-* To add `MsgPack` to the benchmarks, `npm install msgpack-lite` and uncomment line 6 in `tests.js`
-* To add `Protocol Buffers` to the benchmarks, `npm install protobufjs` and uncomment line 7 in `tests.js`
+Then run `npm test`.
 
 ## Compatibility
 
 This library uses `Buffer` when in the `node.js` environment (always included) and the [buffer shim](https://github.com/feross/buffer#features) when in the browser (included with browserify/webpack).
+
+The travis tests pass with node versions ranging from 0.11.15 to the latest (6.3.1 at the time of writing).
 
 ## License
 
