@@ -1,5 +1,8 @@
-var tests = require('./tests');
-// var schemapack = require('./schemapack');
+var benchmarks = require('./benchmarks');
+// var sp = require('./schemapack');
 
-tests.runTestSuite();
-tests.runBenchmark(tests.playerSchema, tests.player);
+var fixPlayer = require('./fixtures/player');
+
+benchmarks.runBenchmark(fixPlayer.schema, fixPlayer.items[0]);
+
+// Use npm test to run test suite
