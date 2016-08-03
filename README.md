@@ -73,7 +73,7 @@ socket.on('chat', function(message) {
 
 ## Benchmarks
 
-These were performed via encoding/decoding the `player` object at the start of this page with an i7 3770k on Windows 7. Feel free to run the benchmarks yourself. (Now using benchmark.js)
+These were performed via encoding/decoding the `player` object at the start of this page with an i7 3770k on Windows 7.
 
 ![Size](http://i.imgur.com/TcTREhP.png "Size")
 ![Speed](http://i.imgur.com/2755F3g.png "Speed")
