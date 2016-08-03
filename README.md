@@ -78,6 +78,8 @@ These were performed via encoding/decoding the `player` object at the start of t
 ![Size](http://i.imgur.com/TcTREhP.png "Size")
 ![Speed](http://i.imgur.com/2755F3g.png "Speed")
 
+[Here's a screencap of the benchmark.js console output](http://i.imgur.com/N53TBBE.png)
+
 In addition, SchemaPack really shines when used with large objects with a lot of nesting and long arrays compared to the competition. I encourage you to run the benchmarks with your own objects to see what works best for you.
 
 ## Library Size
