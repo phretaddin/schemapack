@@ -8,7 +8,9 @@ Integrates very well with WebSockets.
 
 ```js
 // On both the client and server:
-var playerSchema = schemapack.build({
+var sp = require('./schemapack');
+
+var playerSchema = sp.build({
     health: "varuint",
     jumping: "boolean",
     position: [ "int16" ],
@@ -63,9 +65,15 @@ socket.on('chat', function(message) {
 * *Too large:* I didn't want to use a behemoth library with tens of thousands of lines of code and many dependencies for something so simple. This library is 300 lines of code with no dependencies.
 * *Too much overhead:* Some of the other libraries that allow you to specify a schema still waste a lot of bytes on padding/keys/etc. I desgined this library to not waste a single byte on anything that isn't your data.
 
+### Why not just use gzip compression?
+* *Bandwidth usage:* If you gzip the `player` example at the top, the payload will actually *increase* in size. Thus, many engines don't gzip small packets. Compression works best with large payloads with repetition.
+* *Memory usage:* It is common for compression to use an additional 300 kilobytes **per connection**.
+* *CPU usage:* Per-message-deflate can increase encoding times by 5-10x with small payloads (~2x with large).
+* *You still can:* Using gzip and SchemaPack is not mutually exclusive. You can still use gzip on the array buffers.
+
 ## Benchmarks
 
-These were performed via encoding/decoding the `player` object at the start of this page on my computer. Feel free to run the benchmarks yourself by executing `node index.js`.
+These were performed via encoding/decoding the `player` object at the start of this page with an i7 3770k on Windows 7. Feel free to run the benchmarks yourself.
 
 ![Size](http://i.imgur.com/TcTREhP.png "Size")
 ![Speed](http://i.imgur.com/2755F3g.png "Speed")
@@ -74,16 +82,16 @@ In addition, SchemaPack really shines when used with large objects with a lot of
 
 ## Library Size
 
-**2.07 KB** after minify/gzip without buffer shim.
+**2.07 KB** after minify and gzip without buffer shim.
 
-**8.27 KB** after minify/gzip with buffer shim.
+**8.27 KB** after minify and gzip with buffer shim.
 
 ## Installation
 
 On the server, you can just copy `schemapack.js` in to your project folder and `require` it. (Remove the `./` if installed through npm)
 
 ```js
-var schemapack = require('./schemapack');
+var sp = require('./schemapack');
 ```
 
 On the client, use webpack/browserify to automatically include the prerequisite `buffer` shim if you're not using it already.
@@ -91,7 +99,7 @@ On the client, use webpack/browserify to automatically include the prerequisite 
 For example, if you had a file `index.js` with the following:
 
 ```js
-var schemapack = require('./schemapack');
+var sp = require('./schemapack');
 // More code here using schemapack
 ```
 
@@ -103,9 +111,10 @@ You can add the `Buffer` shim by typing `browserify index.js > bundle.js` and th
 
 ## API
 
+
 ### Build your schema:
 ```js
-var personSchema = schemapack.build({
+var personSchema = sp.build({
     name: 'string',
     age: 'uint8',
     weight: 'float32'
@@ -131,17 +140,54 @@ console.log(object.age); // 32
 console.log(object.weight); // 188.5
 ```
 
+### Important array information:
+
+The last item in arrays is both optional and able to be repeated. For example, with this schema:
+
+```js
+var schema = sp.build({ 
+    "numbers": [ "string", "uint8" ] 
+});
+```
+
+All of the following objects are valid for it:
+
+```js
+var obj1 = { "numbers": [ "asdf" ] };
+var obj2 = { "numbers": [ "asdf", 10 ] };
+var obj3 = { "numbers": [ "asdf", 14, 7 ] };
+var obj4 = { "numbers": [ "asdf", 0, 5, 7 ] };
+```
+
+The last item can also be an array or object, with any amount of nesting. Here's an example schema:
+
+```js
+var schema = sp.build([
+    { "name": "string", "numbers": [ "varint" ], "age": "uint8" }
+]);
+```
+
+And here's an object that conforms to it:
+
+```js
+var obj = [
+    { "name": "joe", "numbers": [ -3, 2, 5 ], "age": 42 },
+    { "name": "john smith iv", "numbers": [], "age": 27 },
+    { "name": "bobby", "numbers": [ -22, 1 ], "age": 6 },
+];
+```
+
 ### Set the encoding used for strings:
 `'utf8'` is the default. If you only need to support English, changing the string encoding to `'ascii'` can increase speed. Choose between `'ascii'`, `'utf8'`, `'utf16le'`, `'ucs2'`, `'base64'`, `'binary'`, and `'hex'`.
 
 ```js
-schemapack.setStringEncoding('ascii');
+sp.setStringEncoding('ascii');
 ```
 
 ### Add type aliases:
 ```js
-schemapack.addTypeAlias('int', 'varuint');
-var builtSchema = schemapack.build([ 'string', 'int' ]);
+sp.addTypeAlias('int', 'varuint');
+var builtSchema = sp.build([ 'string', 'int' ]);
 var buffer = builtSchema.encode([ 'dave', 1, 2, 3 ]);
 var object = builtSchema.decode(buffer);
 console.log(object); // [ 'dave', 1, 2, 3 ]
@@ -149,7 +195,7 @@ console.log(object); // [ 'dave', 1, 2, 3 ]
 
 ### Make single item schemas:
 ```js
-var builtSchema = schemapack.build("varint");
+var builtSchema = sp.build("varint");
 var buffer = builtSchema.encode(-350);
 var item = builtSchema.decode(buffer);
 console.log(item); // -350
