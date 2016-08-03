@@ -36,6 +36,7 @@
   ],
   "homepage": "https://github.com/phretaddin/schemapack#readme",
   "devDependencies": {
+    "ava": "*",
     "benchmark": "*",
     "msgpack-lite": "*",
     "protobufjs": "*",
