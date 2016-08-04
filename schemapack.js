@@ -9,15 +9,9 @@ var aliasTypes = {};
 
 function addTypeAlias(newTypeName, underlyingType) {
   var everyType = Object.keys(readTypeDictStr);
-  var reservedKeys = [ '__arr', '__arrend', '__obj', '__objend' ];
 
-  if (reservedKeys.indexOf(newTypeName) > -1 || reservedKeys.indexOf(underlyingType) > -1) {
-    throw new TypeError("Cannot use reserved keys as a type alias or underlying type");
-  } else if (everyType.indexOf(underlyingType) < 0) {
-    throw new TypeError("Underlying type does not exist. Typo?");
-  } else {
-    aliasTypes[newTypeName] = underlyingType;
-  }
+  if (everyType.indexOf(underlyingType) < 0) { throw new TypeError("Underlying type does not exist. Typo?"); }
+  else { aliasTypes[newTypeName] = underlyingType; }
 }
 
 function getDataType(val) {
