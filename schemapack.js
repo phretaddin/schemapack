@@ -247,8 +247,10 @@ function getCompiledSchema(schema) {
         var repID = repEncArrStack.length <= 1 ? newID : saveID + "xn";
         var arrLenStr = "arrLen" + incID;
 
-        strEncodeRefDecs += declareEncodeRef(newID, saveID, prop);
-        strDecodeFunction += declareDecodeRef(newID, saveID, prop, "[]");
+        if (repEncArrStack.length === 1) {
+          strEncodeRefDecs += declareEncodeRef(newID, saveID, prop);
+          strDecodeFunction += declareDecodeRef(newID, saveID, prop, "[]");
+        }
 
         var encArrayLength = encodeArrayLength(repID);
         var decArrayLength = decodeArrayLength(arrLenStr);
@@ -270,8 +272,11 @@ function getCompiledSchema(schema) {
       } else if (typeof val === 'object') {
         var newID = incID + 1;
 
-        strEncodeRefDecs += declareEncodeRef(newID, saveID, prop);
-        strDecodeFunction += declareDecodeRef(newID, saveID, prop, "{}");
+        if (repEncArrStack.length === 1) {
+          strEncodeRefDecs += declareEncodeRef(newID, saveID, prop);
+          strDecodeFunction += declareDecodeRef(newID, saveID, prop, "{}");
+        }
+
         declareRepeatRefs(isRepArrItem, saveID, prop, container, repEncArrStack, repDecArrStack, repByteCountStack);
 
         compileSchema(val, false);
@@ -287,7 +292,7 @@ function getCompiledSchema(schema) {
         repDecArrStack[repDecArrStack.length - 1] += decodeValue(dataType, repID, index);
         repByteCountStack[repByteCountStack.length - 1] += encodeByteCount(dataType, repID, index);
 
-        if (isRepArrItem) { continue; }
+        if (repEncArrStack.length > 1) { continue; }
 
         var uniqID = inArray ? saveID + "[" + i + "]" : saveID;
         strEncodeFunction += encodeValue(dataType, uniqID, index);
@@ -297,7 +302,7 @@ function getCompiledSchema(schema) {
     }
   }
 
-  compileSchema(schema);
+  compileSchema(schema, false);
 
   strByteCount = "var byteC=0;".concat(strByteCount, "var wBuffer=bag.allocUnsafe(byteC);")
   strEncodeFunction = strEncodeRefDecs.concat(strByteCount, strEncodeFunction, "return wBuffer;");
