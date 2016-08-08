@@ -73,20 +73,20 @@ socket.on('chat', function(message) {
 
 ## Benchmarks
 
-These were performed via encoding/decoding the `player` object at the start of this page with an i7 3770k on Windows 7.
+These were performed via encoding/decoding the `player` object at the start of this page many times with an i7 3770k on Windows 7.
 
 ![Size](http://i.imgur.com/TcTREhP.png "Size")
 ![Speed](http://i.imgur.com/2755F3g.png "Speed")
 
-[Here's a screencap of the benchmark.js console output](http://i.imgur.com/N53TBBE.png)
+[Here's a screencap of the new benchmark.js console output](http://i.imgur.com/N53TBBE.png)
 
 In addition, SchemaPack really shines when used with large objects with a lot of nesting and long arrays compared to the competition. I encourage you to run the benchmarks with your own objects to see what works best for you.
 
 ## Library Size
 
-**2.07 KB** after minify and gzip without buffer shim.
+**2.67 KB** after minify and gzip without buffer shim.
 
-**8.27 KB** after minify and gzip with buffer shim.
+**8.83 KB** after minify and gzip with buffer shim.
 
 ## Installation
 
@@ -194,6 +194,23 @@ var buffer = builtSchema.encode([ 'dave', 1, 2, 3 ]);
 var object = builtSchema.decode(buffer);
 console.log(object); // [ 'dave', 1, 2, 3 ]
 ```
+
+### Validation
+By default, validation is enabled. This means that the encode function will include checks to ensure passed objects match the schema.
+
+The build function takes an optional parameter for validation. If set to false, the aforementioned checks will be excluded. Example:
+
+```js
+var builtSchema = sp.build({ "sample": "string" }, false); // Validation checks won't be added to the encode function
+```
+
+To avoid having to pass this flag to each call of build, you can instead call `setValidateByDefault` to set the default validation strategy. Example:
+
+```js
+sp.setValidateByDefault(false);
+```
+
+Setting the parameter to false will disable validation by default, while true will enable validation by default.
 
 ### Make single item schemas:
 ```js
