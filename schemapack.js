@@ -5,6 +5,7 @@
 
 var Buffer = require('buffer').Buffer;
 var strEnc = 'utf8';
+var validateByDefault = true;
 var aliasTypes = {};
 
 function addTypeAlias(newTypeName, underlyingType) {
@@ -21,6 +22,8 @@ function getDataType(val) {
   if (everyType.indexOf(dataType) === -1) { throw new TypeError("Invalid data type for schema: " + val + " -> " + dataType); }
   return dataType;
 }
+
+function setValidateByDefault(flag) { validateByDefault = flag; }
 
 function setStringEncoding(stringEncoding) {
   var requested = stringEncoding.trim().toLowerCase();
@@ -142,6 +145,7 @@ bag.writeVarUInt = writeVarUInt;
 bag.writeVarInt = writeVarInt;
 bag.readString = readString;
 bag.writeString = writeString;
+bag.throwTypeError = throwTypeError;
 bag.byteOffset = 0;
 
 function processArrayEnd(val, id, commands, stackLen, arrLenStr) {
@@ -181,8 +185,44 @@ function declareRepeatRefs(repItem, id, prop, container, repEncArrStack, repDecA
   repByteCountStack[repByteCountStack.length - 1] += declareEncodeRef(id + "xn", repID, index);;
 }
 
-function encodeValue(dataType, id, prop) {
-  return getWriteTypeDictStr(dataType, "ref" + id + prop);
+function throwTypeError(valStr, typeStr, min, max, schemaType) {
+  if (typeof valStr !== typeStr) { throw new TypeError(valStr + " does not match the type of " + typeStr); }
+  else if (min !== undefined && valStr < min) { throw new TypeError(valStr + " is less than minimum allowed value of " + min + " for schema type " + schemaType); }
+  else if (max !== undefined && valStr > max) { throw new TypeError(valStr + " is greater than maximum allowed value of " + max + " for schema type " + schemaType); }
+}
+
+function getCheckDataTypeStr(valStr, typeStr) {
+  var throwMessage = "bag.throwTypeError(" + valStr + ",'" + typeStr + "');";
+  return "if (typeof(" + valStr + ") !== '" + typeStr + "'){" + throwMessage + "}";
+}
+
+function getBoundsCheck(valStr, min, max, schemaType) {
+  var throwMessage = "bag.throwTypeError(" + valStr + ",'number'," + min + "," + max + ",'" + schemaType + "');";
+  return "if (typeof(" + valStr + ") !== 'number'||" + valStr + "<" + min + "||" + valStr + ">" + max + "){" + throwMessage + "}";
+}
+
+function validateDataType(dataType, valStr) {
+  var maxFloat = 3.4028234663852886e+38;
+  
+  switch (dataType) {
+    case "boolean": return getCheckDataTypeStr(valStr, "boolean");
+    case "int8": return getBoundsCheck(valStr, -0x80, 0x7f, "int8");
+    case "uint8": return getBoundsCheck(valStr, 0, 0xff, "uint8");
+    case "int16": return getBoundsCheck(valStr, -0x8000, 0x7fff, "int16");
+    case "uint16": return getBoundsCheck(valStr, 0, 0xffff, "uint16");
+    case "int32": return getBoundsCheck(valStr, -0x80000000, 0x7fffffff, "int32");
+    case "uint32": return getBoundsCheck(valStr, 0, 0xffffffff, "uint32");
+    case "float32": return getBoundsCheck(valStr, -maxFloat, maxFloat, "float32");
+    case "float64": return getBoundsCheck(valStr, -Number.MAX_VALUE, Number.MAX_VALUE, "float64");
+    case "string": return getCheckDataTypeStr(valStr, "string");
+    case "varuint": return getBoundsCheck(valStr, 0, 0x7fffffff, "varuint");
+    case "varint": return getBoundsCheck(valStr, -0x40000000, 0x3fffffff, "varint");
+  }
+}
+
+function encodeValue(dataType, id, prop, validate) {
+  var varName = "ref" + id + prop;
+  return (validate ? validateDataType(dataType, varName) : "") + getWriteTypeDictStr(dataType, varName);
 }
 
 function decodeValue(dataType, id, prop) {
@@ -200,7 +240,7 @@ function getXN(aStack, id) {
   return aStack.length <= 2 && aStack[aStack.length - 1].length <= 0 ? id : (id - 1) + "xn";
 }
 
-function getCompiledSchema(schema) {
+function getCompiledSchema(schema, validate) {
   var strEncodeFunction = "bag.byteOffset=0;";
   var strDecodeFunction = "var ref1={}; bag.byteOffset=0;";
   var strByteCount = "";
@@ -288,14 +328,14 @@ function getCompiledSchema(schema) {
         var repID = getXN(repEncArrStack, saveID);
         if (inArray) { repID += isRepArrItem ? "[j" + saveID + "]" : "[" + i + "]"; }
 
-        repEncArrStack[repEncArrStack.length - 1] += encodeValue(dataType, repID, index);
+        repEncArrStack[repEncArrStack.length - 1] += encodeValue(dataType, repID, index, validate);
         repDecArrStack[repDecArrStack.length - 1] += decodeValue(dataType, repID, index);
         repByteCountStack[repByteCountStack.length - 1] += encodeByteCount(dataType, repID, index);
 
         if (repEncArrStack.length > 1) { continue; }
 
         var uniqID = inArray ? saveID + "[" + i + "]" : saveID;
-        strEncodeFunction += encodeValue(dataType, uniqID, index);
+        strEncodeFunction += encodeValue(dataType, uniqID, index, validate);
         strDecodeFunction += decodeValue(dataType, uniqID, index);
         strByteCount += encodeByteCount(dataType, uniqID, index);
       }
@@ -314,8 +354,8 @@ function getCompiledSchema(schema) {
   return [ compiledEncode, compiledDecode ];
 }
 
-function build(schema) { 
-  var builtSchema = getCompiledSchema(schema);
+function build(schema, validate) { 
+  var builtSchema = getCompiledSchema(schema, validate === undefined ? validateByDefault : validate);
 
   var compiledEncode = builtSchema[0];
   var compiledDecode = builtSchema[1];
@@ -337,5 +377,6 @@ addTypeAlias('bool', 'boolean');
 module.exports = exports = {
   "build": build,
   "addTypeAlias": addTypeAlias,
-  "setStringEncoding": setStringEncoding
+  "setStringEncoding": setStringEncoding,
+  "setValidateByDefault": setValidateByDefault
 };
