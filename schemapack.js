@@ -74,6 +74,20 @@ function readString(buffer) {
   return str;
 }
 
+function writeBuffer(val, wBuffer) {
+	var len = val.length;
+	writeVarUInt(len, wBuffer);
+	val.copy(wBuffer, bag.byteOffset);
+	bag.byteOffset += len;
+}
+
+function readBuffer(buffer) {
+	var len = readVarUInt(buffer);
+	var buff = buffer.slice(bag.byteOffset, bag.byteOffset + len);
+	bag.byteOffset += len;
+	return buff;
+}
+
 var readTypeDictStr = {
   "boolean": "!!buffer.readUInt8(bag.byteOffset, true); bag.byteOffset += 1;",
   "int8": "buffer.readInt8(bag.byteOffset, true); bag.byteOffset += 1;",
@@ -86,7 +100,8 @@ var readTypeDictStr = {
   "float64": "buffer.readDoubleBE(bag.byteOffset, true); bag.byteOffset += 8;",
   "string": "bag.readString(buffer);",
   "varuint": "bag.readVarUInt(buffer);",
-  "varint": "bag.readVarInt(buffer);"
+  "varint": "bag.readVarInt(buffer);",
+  "buffer": "bag.readBuffer(buffer);"
 };
 
 function getWriteTypeDictStr(dataType, valStr) {
@@ -103,6 +118,7 @@ function getWriteTypeDictStr(dataType, valStr) {
     case "string": return "bag.writeString(" + valStr + ", wBuffer);";
     case "varuint": return "bag.writeVarUInt(" + valStr + ", wBuffer);";
     case "varint": return "bag.writeVarInt(" + valStr + ", wBuffer);";
+    case "buffer": return "bag.writeBuffer(" + valStr + ", wBuffer);";
   }
 }
 
@@ -111,7 +127,8 @@ var constantByteCounts = { "boolean": 1, "int8": 1, "uint8": 1, "int16": 2, "uin
 var dynamicByteCounts = {
   "string": function(val) { var len = Buffer.byteLength(val, strEnc); return getVarUIntByteLength(len) + len; },
   "varuint": function(val) { return getVarUIntByteLength(val); },
-  "varint": function(val) { return getVarIntByteLength(val); }
+  "varint": function(val) { return getVarIntByteLength(val); },
+  "buffer": function(val) { var len = Buffer.byteLength(val, strEnc); return getVarUIntByteLength(len) + len; }
 };
 
 function getVarUIntByteLength(val) {
@@ -145,6 +162,8 @@ bag.writeVarUInt = writeVarUInt;
 bag.writeVarInt = writeVarInt;
 bag.readString = readString;
 bag.writeString = writeString;
+bag.readBuffer = readBuffer;
+bag.writeBuffer = writeBuffer;
 bag.throwTypeError = throwTypeError;
 bag.byteOffset = 0;
 
@@ -203,7 +222,7 @@ function getBoundsCheck(valStr, min, max, schemaType) {
 
 function validateDataType(dataType, valStr) {
   var maxFloat = 3.4028234663852886e+38;
-  
+
   switch (dataType) {
     case "boolean": return getCheckDataTypeStr(valStr, "boolean");
     case "int8": return getBoundsCheck(valStr, -0x80, 0x7f, "int8");
@@ -217,6 +236,7 @@ function validateDataType(dataType, valStr) {
     case "string": return getCheckDataTypeStr(valStr, "string");
     case "varuint": return getBoundsCheck(valStr, 0, 0x7fffffff, "varuint");
     case "varint": return getBoundsCheck(valStr, -0x40000000, 0x3fffffff, "varint");
+    case "buffer": return getCheckDataTypeStr(valStr, "object");
   }
 }
 
@@ -231,8 +251,8 @@ function decodeValue(dataType, id, prop) {
 
 function encodeByteCount(dataType, id, prop) {
   var isConstant = constantByteCounts.hasOwnProperty(dataType);
-  
-  if (isConstant) { return "byteC+=" + constantByteCounts[dataType] + ";"; } 
+
+  if (isConstant) { return "byteC+=" + constantByteCounts[dataType] + ";"; }
   else { return "byteC+=bag.dynamicByteCounts['" + dataType + "'](ref" + id + prop + ");"; }
 }
 
@@ -269,7 +289,7 @@ function getCompiledSchema(schema, validate) {
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i];
       var val = json[key];
-      
+
       if (inArray) { key = +key; }
 
       var prop = typeof key === "number" ? key : "'" + key + "'";
@@ -303,7 +323,7 @@ function getCompiledSchema(schema, validate) {
         tmpRepEncArr = encArrayLength + processArrayEnd(val, newID, repEncArrStack.pop() + tmpRepEncArr, repEncArrStack.length);
         tmpRepDecArr = decArrayLength + processArrayEnd(val, newID, repDecArrStack.pop() + tmpRepDecArr, repEncArrStack.length, arrLenStr);
         tmpRepByteCount = byteArrayLength + processArrayEnd(val, newID, repByteCountStack.pop() + tmpRepByteCount, repEncArrStack.length);
-        
+
         if (repEncArrStack.length === 1) {
           strEncodeFunction += tmpRepEncArr; tmpRepEncArr = "";
           strDecodeFunction += tmpRepDecArr; tmpRepDecArr = "";
@@ -354,7 +374,7 @@ function getCompiledSchema(schema, validate) {
   return [ compiledEncode, compiledDecode ];
 }
 
-function build(schema, validate) { 
+function build(schema, validate) {
   var builtSchema = getCompiledSchema(schema, validate === undefined ? validateByDefault : validate);
 
   var compiledEncode = builtSchema[0];
@@ -365,7 +385,7 @@ function build(schema, validate) {
       var itemWrapper = typeof json === "object" && json.constructor !== Array ? json : { "a": json };
       return compiledEncode(itemWrapper, bag);
     },
-    "decode": function(buffer) { 
+    "decode": function(buffer) {
       var bufferWrapper = buffer instanceof ArrayBuffer ? bufferFrom(buffer) : buffer;
       return compiledDecode(bufferWrapper, bag);
     }
