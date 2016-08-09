@@ -1,6 +1,6 @@
 {
   "name": "schemapack",
-  "version": "1.3.0",
+  "version": "1.3.2",
   "description": "The fastest and smallest JavaScript object serialization library. Efficiently encode your objects in to compact byte buffers and then decode them back in to objects on the receiver. Integrates very well with WebSockets.",
   "main": "schemapack.js",
   "engines": {
@@ -33,7 +33,8 @@
     "url": "https://github.com/phretaddin/schemapack/issues"
   },
   "files": [
-    "schemapack.js"
+    "schemapack.js",
+    "tonic.js"
   ],
   "homepage": "https://github.com/phretaddin/schemapack#readme",
   "devDependencies": {
