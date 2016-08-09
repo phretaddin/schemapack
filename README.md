@@ -4,7 +4,7 @@ The fastest and smallest JavaScript object serialization library.
 Efficiently encode your objects in to compact byte buffers and then decode them back in to objects on the receiver.
 Integrates very well with WebSockets.
 
-## Example
+## [Example](https://tonicdev.com/npm/schemapack)
 
 ```js
 // On both the client and server:

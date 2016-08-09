@@ -9,6 +9,7 @@
   "scripts": {
     "test": "ava"
   },
+  "tonicExampleFilename": "tonic.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/phretaddin/schemapack.git"
