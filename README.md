@@ -29,7 +29,7 @@ var buffer = playerSchema.encode(player);
 socket.emit('player-message', buffer); // Use some JavaScript WebSocket library to get this socket variable.
 
 // On the server:
-socket.on('player-message', function(buffer) { 
+socket.on('player-message', function(buffer) {
     var player = playerSchema.decode(buffer);
 }
 ```
@@ -147,8 +147,8 @@ console.log(object.weight); // 188.5
 The last item in arrays is both optional and able to be repeated. For example, with this schema:
 
 ```js
-var schema = sp.build({ 
-    "numbers": [ "string", "uint8" ] 
+var schema = sp.build({
+    "numbers": [ "string", "uint8" ]
 });
 ```
 
@@ -236,6 +236,7 @@ console.log(item); // -350
 | string    |         | varuint length prefix followed by bytes of each character                                                                                               | Any string                      |
 | varuint   |         | 1 byte when 0 to 127<br /> 2 bytes when 128 to 16,383<br /> 3 bytes when 16,384 to 2,097,151<br /> 4 bytes when 2,097,152 to 268,435,455<br /> etc.           | 0 to 2,147,483,647      |
 | varint    |         | 1 byte when -64 to 63<br /> 2 bytes when -8,192 to 8,191<br /> 3 bytes when -1,048,576 to 1,048,575<br /> 4 bytes when -134,217,728 to 134,217,727<br /> etc. | -1,073,741,824 to 1,073,741,823        |
+| buffer    |         | varuint length prefix followed by bytes of buffer                                                                                                             | Any buffer                      |
 
 ## Tests
 
