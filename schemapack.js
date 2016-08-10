@@ -75,18 +75,18 @@ function readString(buffer) {
 }
 
 function writeBuffer(val, wBuffer) {
-	var len = val.length;
-	writeVarUInt(len, wBuffer);
-	val.copy(wBuffer, bag.byteOffset);
-	bag.byteOffset += len;
+  var len = val.length;
+  writeVarUInt(len, wBuffer);
+  val.copy(wBuffer, bag.byteOffset);
+  bag.byteOffset += len;
 }
 
 function readBuffer(buffer) {
-	var len = readVarUInt(buffer);
+  var len = readVarUInt(buffer);
   var buff = allocUnsafe(len);
-	buffer.copy(buff, 0, bag.byteOffset, bag.byteOffset + len);
-	bag.byteOffset += len;
-	return buff;
+  buffer.copy(buff, 0, bag.byteOffset, bag.byteOffset + len);
+  bag.byteOffset += len;
+  return buff;
 }
 
 var readTypeDictStr = {
