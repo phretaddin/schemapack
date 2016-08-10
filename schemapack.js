@@ -83,7 +83,8 @@ function writeBuffer(val, wBuffer) {
 
 function readBuffer(buffer) {
 	var len = readVarUInt(buffer);
-	var buff = buffer.slice(bag.byteOffset, bag.byteOffset + len);
+  var buff = allocUnsafe(len);
+	buffer.copy(buff, 0, bag.byteOffset, bag.byteOffset + len);
 	bag.byteOffset += len;
 	return buff;
 }
@@ -128,7 +129,7 @@ var dynamicByteCounts = {
   "string": function(val) { var len = Buffer.byteLength(val, strEnc); return getVarUIntByteLength(len) + len; },
   "varuint": function(val) { return getVarUIntByteLength(val); },
   "varint": function(val) { return getVarIntByteLength(val); },
-  "buffer": function(val) { var len = Buffer.byteLength(val, strEnc); return getVarUIntByteLength(len) + len; }
+  "buffer": function(val) { var len = val.length; return getVarUIntByteLength(len) + len; }
 };
 
 function getVarUIntByteLength(val) {
@@ -210,12 +211,17 @@ function throwTypeError(valStr, typeStr, min, max, schemaType) {
   else if (max !== undefined && valStr > max) { throw new TypeError(valStr + " is greater than maximum allowed value of " + max + " for schema type " + schemaType); }
 }
 
+function getCheckInstanceStr(valStr, typeStr) {
+  var throwMessage = "bag.throwTypeError(" + valStr + ",'" + typeStr + "');";
+  return "if (" + valStr + " instanceof " + typeStr + " === false){" + throwMessage + "}";
+}
+
 function getCheckDataTypeStr(valStr, typeStr) {
   var throwMessage = "bag.throwTypeError(" + valStr + ",'" + typeStr + "');";
   return "if (typeof(" + valStr + ") !== '" + typeStr + "'){" + throwMessage + "}";
 }
 
-function getBoundsCheck(valStr, min, max, schemaType) {
+function getBoundsCheckStr(valStr, min, max, schemaType) {
   var throwMessage = "bag.throwTypeError(" + valStr + ",'number'," + min + "," + max + ",'" + schemaType + "');";
   return "if (typeof(" + valStr + ") !== 'number'||" + valStr + "<" + min + "||" + valStr + ">" + max + "){" + throwMessage + "}";
 }
@@ -225,18 +231,18 @@ function validateDataType(dataType, valStr) {
 
   switch (dataType) {
     case "boolean": return getCheckDataTypeStr(valStr, "boolean");
-    case "int8": return getBoundsCheck(valStr, -0x80, 0x7f, "int8");
-    case "uint8": return getBoundsCheck(valStr, 0, 0xff, "uint8");
-    case "int16": return getBoundsCheck(valStr, -0x8000, 0x7fff, "int16");
-    case "uint16": return getBoundsCheck(valStr, 0, 0xffff, "uint16");
-    case "int32": return getBoundsCheck(valStr, -0x80000000, 0x7fffffff, "int32");
-    case "uint32": return getBoundsCheck(valStr, 0, 0xffffffff, "uint32");
-    case "float32": return getBoundsCheck(valStr, -maxFloat, maxFloat, "float32");
-    case "float64": return getBoundsCheck(valStr, -Number.MAX_VALUE, Number.MAX_VALUE, "float64");
+    case "int8": return getBoundsCheckStr(valStr, -0x80, 0x7f, "int8");
+    case "uint8": return getBoundsCheckStr(valStr, 0, 0xff, "uint8");
+    case "int16": return getBoundsCheckStr(valStr, -0x8000, 0x7fff, "int16");
+    case "uint16": return getBoundsCheckStr(valStr, 0, 0xffff, "uint16");
+    case "int32": return getBoundsCheckStr(valStr, -0x80000000, 0x7fffffff, "int32");
+    case "uint32": return getBoundsCheckStr(valStr, 0, 0xffffffff, "uint32");
+    case "float32": return getBoundsCheckStr(valStr, -maxFloat, maxFloat, "float32");
+    case "float64": return getBoundsCheckStr(valStr, -Number.MAX_VALUE, Number.MAX_VALUE, "float64");
     case "string": return getCheckDataTypeStr(valStr, "string");
-    case "varuint": return getBoundsCheck(valStr, 0, 0x7fffffff, "varuint");
-    case "varint": return getBoundsCheck(valStr, -0x40000000, 0x3fffffff, "varint");
-    case "buffer": return getCheckDataTypeStr(valStr, "object");
+    case "varuint": return getBoundsCheckStr(valStr, 0, 0x7fffffff, "varuint");
+    case "varint": return getBoundsCheckStr(valStr, -0x40000000, 0x3fffffff, "varint");
+    case "buffer": return getCheckInstanceStr(valStr, "Uint8Array");
   }
 }
 
@@ -274,15 +280,12 @@ function getCompiledSchema(schema, validate) {
   var tmpRepDecArr = "";
   var tmpRepByteCount = "";
 
-  var isSingleItem = typeof schema === "string";
-  var isArray = schema.constructor === Array;
-
-  if (isSingleItem || isArray) { schema = { 'a': schema }; }
+  schema = { 'a': schema };
 
   function compileSchema(json, inArray) {
     incID++;
     var keys = Object.keys(json);
-    keys.sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+    keys.sort(function(a, b) { return a < b ? -1 : (a > b ? 1 : 0); });
 
     var saveID = incID;
 
@@ -366,7 +369,7 @@ function getCompiledSchema(schema, validate) {
 
   strByteCount = "var byteC=0;".concat(strByteCount, "var wBuffer=bag.allocUnsafe(byteC);")
   strEncodeFunction = strEncodeRefDecs.concat(strByteCount, strEncodeFunction, "return wBuffer;");
-  strDecodeFunction = strDecodeFunction.concat("return ref" + (isSingleItem ? "1['a'];" : isArray ? "2;" : "1;"));
+  strDecodeFunction = strDecodeFunction.concat("return ref1['a'];");
 
   var compiledEncode = new Function('json', 'bag', strEncodeFunction);
   var compiledDecode = new Function('buffer', 'bag', strDecodeFunction);
@@ -382,7 +385,7 @@ function build(schema, validate) {
 
   return {
     "encode": function(json) {
-      var itemWrapper = typeof json === "object" && json.constructor !== Array ? json : { "a": json };
+      var itemWrapper = { "a": json };
       return compiledEncode(itemWrapper, bag);
     },
     "decode": function(buffer) {
