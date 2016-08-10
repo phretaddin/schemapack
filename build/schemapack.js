@@ -2311,7 +2311,7 @@ function build(schema, validate) {
       return compiledEncode(itemWrapper, bag);
     },
     "decode": function(buffer) {
-      var bufferWrapper = buffer instanceof ArrayBuffer ? bufferFrom(buffer) : buffer;
+      var bufferWrapper = Buffer.isBuffer(buffer) ? buffer : bufferFrom(buffer);
       return compiledDecode(bufferWrapper, bag);
     }
   }
