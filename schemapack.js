@@ -211,9 +211,9 @@ function throwTypeError(valStr, typeStr, min, max, schemaType) {
   else if (max !== undefined && valStr > max) { throw new TypeError(valStr + " is greater than maximum allowed value of " + max + " for schema type " + schemaType); }
 }
 
-function getCheckInstanceStr(valStr, typeStr) {
-  var throwMessage = "bag.throwTypeError(" + valStr + ",'" + typeStr + "');";
-  return "if (" + valStr + " instanceof " + typeStr + " === false){" + throwMessage + "}";
+function getCheckBufferStr(valStr) {
+  var throwMessage = "bag.throwTypeError(" + valStr + ",'Buffer or Uint8Array');";
+  return "if (" + valStr + " instanceof Uint8Array === false && " + valStr + " instanceof Buffer === false){" + throwMessage + "}";
 }
 
 function getCheckDataTypeStr(valStr, typeStr) {
@@ -242,7 +242,7 @@ function validateDataType(dataType, valStr) {
     case "string": return getCheckDataTypeStr(valStr, "string");
     case "varuint": return getBoundsCheckStr(valStr, 0, 0x7fffffff, "varuint");
     case "varint": return getBoundsCheckStr(valStr, -0x40000000, 0x3fffffff, "varint");
-    case "buffer": return getCheckInstanceStr(valStr, "Uint8Array");
+    case "buffer": return getCheckBufferStr(valStr);
   }
 }
 
