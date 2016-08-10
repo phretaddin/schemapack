@@ -117,7 +117,7 @@ Alternatively, just grab the built minified file from the build folder in the Gi
 <script type="text/javascript" src="schemapack.min.js"></script>
 ```
 
-This will attach it to the window object. In your JavaScript files, the variable will available as `schemapack`. This built file only needs to be used on the client, as the `node` server already includes the prerequisite `Buffer`. The server should just use `schemapack.js`.
+This will attach it to the window object. In your JavaScript files, the variable will available as `schemapack`. This built file only needs to be used on the client, as the `node` server already includes the prerequisite `Buffer`. The server should use the unbundled version.
 
 ## API
 
