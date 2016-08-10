@@ -111,6 +111,14 @@ You can add the `Buffer` shim by typing `browserify index.js > bundle.js` and th
 <script type="text/javascript" src="bundle.js"></script>
 ```
 
+Alternatively, just grab the built minified file from the build folder in the Github repository. Then add the following to your HTML page:
+
+```html
+<script type="text/javascript" src="schemapack.min.js"></script>
+```
+
+This will attach it to the window object. In your JavaScript files, the variable will available as `schemapack`.
+
 ## API
 
 
