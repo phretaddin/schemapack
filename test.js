@@ -1,6 +1,6 @@
-import fs from 'fs';
-import test from 'ava';
-import sp from './schemapack.js';
+var fs = require('fs');
+var test = require('ava');
+var sp = require('./schemapack.js');
 
 const fixtures = fs.readdirSync('./fixtures');
 
