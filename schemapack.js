@@ -169,7 +169,7 @@ bag.throwTypeError = throwTypeError;
 bag.byteOffset = 0;
 
 function processArrayEnd(val, id, commands, stackLen, arrLenStr) {
-  var repID = stackLen <= 1 ? id : (id - 1) + "xn";
+  var repID = stackLen <= 1 ? id : id + "xn";
   var outerBound = arrLenStr === undefined ? "ref" + repID + ".length" : arrLenStr;
   var jStr = "j" + id;
 
@@ -196,13 +196,14 @@ function declareEncodeRef(id, parentID, prop) {
   return "var ref" + id + "=ref" + parentID + "[" + prop + "];";
 }
 
-function declareRepeatRefs(repItem, id, prop, container, repEncArrStack, repDecArrStack, repByteCountStack) {
+function declareRepeatRefs(repItem, id, parentID, prop, container, repEncArrStack, repDecArrStack, repByteCountStack) {
   var repID = getXN(repEncArrStack, id);
-  var index = repItem ? "j" + id : prop;
+  var parentIDXN = getXN(repEncArrStack, parentID);
+  var index = repItem ? "j" + parentID : prop;
 
-  repEncArrStack[repEncArrStack.length - 1] += declareEncodeRef(id + "xn", repID, index);
-  repDecArrStack[repDecArrStack.length - 1] += declareDecodeRef(id + "xn", repID, index, container);
-  repByteCountStack[repByteCountStack.length - 1] += declareEncodeRef(id + "xn", repID, index);;
+  repEncArrStack[repEncArrStack.length - 1] += declareEncodeRef(id + "xn", parentIDXN, index);
+  repDecArrStack[repDecArrStack.length - 1] += declareDecodeRef(id + "xn", parentIDXN, index, container);
+  repByteCountStack[repByteCountStack.length - 1] += declareEncodeRef(id + "xn", parentIDXN, index);;
 }
 
 function throwTypeError(valStr, typeStr, min, max, schemaType) {
@@ -263,7 +264,7 @@ function encodeByteCount(dataType, id, prop) {
 }
 
 function getXN(aStack, id) {
-  return aStack.length <= 2 && aStack[aStack.length - 1].length <= 0 ? id : (id - 1) + "xn";
+  return aStack.length <= 2 && aStack[aStack.length - 1].length <= 0 ? id : id + "xn";
 }
 
 function getCompiledSchema(schema, validate) {
@@ -307,7 +308,7 @@ function getCompiledSchema(schema, validate) {
 
       if (val.constructor === Array) {
         var newID = incID + 1;
-        var repID = repEncArrStack.length <= 1 ? newID : saveID + "xn";
+        var repID = repEncArrStack.length <= 1 ? newID : newID + "xn";
         var arrLenStr = "arrLen" + incID;
 
         if (repEncArrStack.length === 1) {
@@ -319,7 +320,7 @@ function getCompiledSchema(schema, validate) {
         var decArrayLength = decodeArrayLength(arrLenStr);
         var byteArrayLength = getArrayLengthByteCount(repID);
 
-        declareRepeatRefs(isRepArrItem, saveID, prop, container, repEncArrStack, repDecArrStack, repByteCountStack);
+        declareRepeatRefs(isRepArrItem, newID, saveID, prop, container, repEncArrStack, repDecArrStack, repByteCountStack);
 
         compileSchema(val, true);
 
@@ -340,7 +341,7 @@ function getCompiledSchema(schema, validate) {
           strDecodeFunction += declareDecodeRef(newID, saveID, prop, "{}");
         }
 
-        declareRepeatRefs(isRepArrItem, saveID, prop, container, repEncArrStack, repDecArrStack, repByteCountStack);
+        declareRepeatRefs(isRepArrItem, newID, saveID, prop, container, repEncArrStack, repDecArrStack, repByteCountStack);
 
         compileSchema(val, false);
       } else {
