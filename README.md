@@ -31,7 +31,7 @@ socket.emit('player-message', buffer); // Use some JavaScript WebSocket library 
 // On the server:
 socket.on('player-message', function(buffer) {
     var player = playerSchema.decode(buffer);
-}
+});
 ```
 
 In this example, the size of payload is only **13 bytes**. Using `JSON.stringify` instead causes the payload to be **100 bytes**.
