@@ -277,9 +277,6 @@ function getCompiledSchema(schema, validate) {
   var repEncArrStack = [""];
   var repDecArrStack = [""];
   var repByteCountStack = [""];
-  var tmpRepEncArr = "";
-  var tmpRepDecArr = "";
-  var tmpRepByteCount = "";
 
   schema = { 'a': schema };
 
@@ -324,14 +321,18 @@ function getCompiledSchema(schema, validate) {
 
         compileSchema(val, true);
 
-        tmpRepEncArr = encArrayLength + processArrayEnd(val, newID, repEncArrStack.pop() + tmpRepEncArr, repEncArrStack.length);
-        tmpRepDecArr = decArrayLength + processArrayEnd(val, newID, repDecArrStack.pop() + tmpRepDecArr, repEncArrStack.length, arrLenStr);
-        tmpRepByteCount = byteArrayLength + processArrayEnd(val, newID, repByteCountStack.pop() + tmpRepByteCount, repEncArrStack.length);
+        var repEncArr = encArrayLength + processArrayEnd(val, newID, repEncArrStack.pop(), repEncArrStack.length);
+        var repDecArr = decArrayLength + processArrayEnd(val, newID, repDecArrStack.pop(), repEncArrStack.length, arrLenStr);
+        var repByteCount = byteArrayLength + processArrayEnd(val, newID, repByteCountStack.pop(), repEncArrStack.length);
 
         if (repEncArrStack.length === 1) {
-          strEncodeFunction += tmpRepEncArr; tmpRepEncArr = "";
-          strDecodeFunction += tmpRepDecArr; tmpRepDecArr = "";
-          strByteCount += tmpRepByteCount; tmpRepByteCount = "";
+          strEncodeFunction += repEncArr;
+          strDecodeFunction += repDecArr;
+          strByteCount += repByteCount;
+        } else {
+          repEncArrStack[repEncArrStack.length - 1] += repEncArr
+          repDecArrStack[repDecArrStack.length - 1] += repDecArr
+          repByteCountStack[repByteCountStack.length - 1] += repByteCount
         }
       } else if (typeof val === 'object') {
         var newID = incID + 1;
